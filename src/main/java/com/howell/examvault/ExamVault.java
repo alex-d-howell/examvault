@@ -1,16 +1,17 @@
-package com.example.application;
+package com.howell.examvault;
 
-import com.vaadin.flow.component.page.AppShellConfigurator;
-import com.vaadin.flow.theme.Theme;
+import java.time.Clock;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
-import java.time.Clock;
+import com.vaadin.flow.component.page.AppShellConfigurator;
+import com.vaadin.flow.theme.Theme;
 
 @SpringBootApplication
 @Theme("default")
-public class Application implements AppShellConfigurator {
+public class ExamVault implements AppShellConfigurator {
 
     @Bean
     public Clock clock() {
@@ -18,7 +19,7 @@ public class Application implements AppShellConfigurator {
     }
 
     public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
+        SpringApplication.run(ExamVault.class, args);
     }
 
 }
