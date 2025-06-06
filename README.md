@@ -1,8 +1,24 @@
 # Examvault README
 
-- [ ] TODO Replace or update this README with instructions relevant to your application
+### To Do List
 
-To start the application in development mode, import it into your IDE and run the `Application` class. 
+[] Complete Exam Details View
+[] Add Ratings to Exams/Exam Details
+[] Add Comments to Exam/Exam Details
+[] Complete Exam Attempt View
+[] Complete Exam Results View
+[] Complete Create Exam View w/ Form
+[] Complete User Login/Register View
+[] Add Ultimate Trivia Exam to Home View
+[] Add list of 'Featured/Most Recent Exams'
+[] Remove Sample Data button,
+[] Refactor inline styles to classes where possible
+[] Configure application to use Postgres
+[] Add link to navigate to application Github
+[] Develop & document deployment procedures
+[] Have 'Developed by' text link to Github profile or Resume or personal site
+
+To start the application in development mode, import it into your IDE and run the `ExamVault` class. 
 You can also start the application from the command line by running: 
 
 ```bash
@@ -14,10 +30,3 @@ To build the application in production mode, run:
 ```bash
 ./mvnw -Pproduction package
 ```
-
-## Getting Started
-
-The [Getting Started](https://vaadin.com/docs/latest/getting-started) guide will quickly familiarize you with your new
-Examvault implementation. You'll learn how to set up your development environment, understand the project 
-structure, and find resources to help you add muscles to your skeleton — transforming it into a fully-featured 
-application.

@@ -37,9 +37,11 @@ export const ReadMoreModal = ({ description }: { description: string }) => {
             <Dialog
                 opened={dialogOpened}
                 onOpenedChanged={(e) => setDialogOpened(e.detail.value)}
-                headerTitle="Full Description"
+                headerTitle="Exam Description"
+                width='75vw'
+                height='60vh'
             >
-                <p style={{ fontSize: 'var(--lumo-font-size-s)', margin: 0 }}>{description}</p>
+                <span style={{ fontSize: 'var(--lumo-font-size-s)', margin: 0, overflowWrap: 'break-word' }}>{description}</span>
             </Dialog>
         </div>
     );
