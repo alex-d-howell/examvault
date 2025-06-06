@@ -14,6 +14,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 @Entity
 @Table(name = "exams")
@@ -24,6 +25,8 @@ public class Exam implements Serializable {
 
     private String title;
     
+    @NotNull
+    @Size(max=5000)
     private String description;
     
     @NotNull
