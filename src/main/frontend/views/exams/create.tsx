@@ -235,6 +235,9 @@ export default function CreateView() {
           {submitMsg && <div className={submitMsg.includes('success') ? 'success-msg' : 'error-msg'}>{submitMsg}</div>}
         </div>
       </form>
+      <button type="button" onClick={()=> ExamService.createSampleExams()}>
+        Create Sample Data
+      </button>
     </div>
   );
 }
