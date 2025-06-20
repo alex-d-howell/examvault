@@ -22,6 +22,10 @@ public class ExamService {
 
     public void saveExam(Exam exam) {
         // Create a new Exam object and save it to the repository
+        System.out.print("Saving exam: " + exam.getTitle());
+        System.out.print("exam: " + exam.toString());
+        exam.setUploadedBy("Test");
+        exam.setUploadedAt(new Timestamp(System.currentTimeMillis()));
         examRepository.save(exam);
     }
 

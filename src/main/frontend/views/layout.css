@@ -1,0 +1,44 @@
+/* Root layout container */
+.main-layout-root {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header styles */
+.main-header {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  height: 10vh;
+  background-color: #191970;
+  align-items: center;
+  justify-content: center;
+}
+.main-title {
+  margin: auto;
+  color: white !important;
+}
+.main-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.main-sample-btn {
+  position: relative;
+  top: 4px;
+  left: 2rem;
+  cursor: pointer;
+  color: white;
+  background-color: #0a21c0;
+  border-radius: 4px;
+}
+
+/* Footer styles */
+.main-footer {
+  text-align: center;
+  background-color: #f1f1f1;
+  height: 10vh;
+  padding: 1rem;
+}

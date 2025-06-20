@@ -1,5 +1,5 @@
 import { Button, Dialog } from "@vaadin/react-components";
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 export const ConfirmationButton = ({ action, modalTitle, modalDescription, buttonText, buttonClassName, buttonTheme, onYes }: {action: string, modalTitle: string, modalDescription: string, buttonText: string, buttonClassName: string, buttonTheme: string, onYes: Function }) => {
 

@@ -1,3 +1,3 @@
-export default function HomeView() {
+export default function IndexView() {
     return (null);
 }

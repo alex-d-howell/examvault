@@ -11,8 +11,10 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -23,14 +25,18 @@ public class Exam implements Serializable {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @NotNull(message = "Title is required")
+    @Size(min = 1, max = 255, message = "Title must be between 1 and 255 characters")
     private String title;
     
-    @NotNull
-    @Size(max=5000)
+    @NotNull(message = "Description is required")
+    @Size(max = 5000, message = "Description cannot exceed 5000 characters")
     private String description;
     
-    @NotNull
+    // Fixed: Added JoinColumn and Valid annotation, removed NotNull
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    @JoinColumn(name = "exam_id") // This creates the foreign key in questions table
+    @Valid // This ensures questions are validated too
     private List<Question> questions;
     
     private String uploadedBy;
@@ -51,9 +57,11 @@ public class Exam implements Serializable {
     public Exam(UUID id) {
         this.id = id;
     }
+    
     public UUID getId() {
         return id;
     }
+    
     public void setId(UUID id) {
         this.id = id;
     }
@@ -78,7 +86,7 @@ public class Exam implements Serializable {
         return questions;
     }
 
-    public void setQuestions(List questions) {
+    public void setQuestions(List<Question> questions) {
         this.questions = questions;
     }
 
@@ -97,5 +105,4 @@ public class Exam implements Serializable {
     public void setUploadedAt(Timestamp uploadedAt) {
         this.uploadedAt = uploadedAt;
     }
-
 }

@@ -2,21 +2,16 @@
 
 ### To Do List
 
-[] Complete Exam Details View
-[] Add Ratings to Exams/Exam Details
-[] Add Comments to Exam/Exam Details
-[] Complete Exam Attempt View
-[] Complete Exam Results View
-[] Complete Create Exam View w/ Form
-[] Complete User Login/Register View
-[] Add Ultimate Trivia Exam to Home View
-[] Add list of 'Featured/Most Recent Exams'
-[] Remove Sample Data button,
-[] Refactor inline styles to classes where possible
-[] Configure application to use Postgres
-[] Add link to navigate to application Github
-[] Develop & document deployment procedures
-[] Have 'Developed by' text link to Github profile or Resume or personal site
+
+- Add Ratings to Exams/Exam Details
+- Add Explanation to Question object and views
+- Add Comments to Exam/Exam Details
+- Complete Exam Attempt View
+- Complete Exam Results View
+- Complete User Login/Register View
+- Configure application to use Postgres
+- Develop & document deployment procedures
+- Restyle application
 
 To start the application in development mode, import it into your IDE and run the `ExamVault` class. 
 You can also start the application from the command line by running: 

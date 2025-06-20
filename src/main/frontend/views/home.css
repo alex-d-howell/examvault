@@ -1,0 +1,130 @@
+/* Centered container for all content */
+.home-centered-container {
+  min-height: 67vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding-top: 3.5rem; /* Add more space at the top */
+}
+
+/* Welcome card styles */
+.welcome-card {
+  text-align: center;
+  height: 7vh;
+  background: linear-gradient(135deg, #f8fafc 60%, #e0e7ff 100%);
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+  border: none;
+  margin: 16px auto;
+  padding: 1rem;
+  max-width: 600px;
+}
+.welcome-title {
+  color: #3b3b5c;
+  font-size: 1.3rem;
+  margin: 0;
+  font-weight: bold;
+}
+.welcome-desc {
+  font-size: 1rem;
+  margin: 10px;
+  color: var(--secondary-color, #666); /* fallback if not defined */
+}
+
+/* Gallery container and items */
+.gallery {
+  width: 100%;
+  min-height: 13vh;
+  max-height: 18vh;
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: 1.2rem;
+  margin: 12px auto;
+  max-width: 900px;
+  padding: 0.75rem 0;
+}
+.gallery-item {
+  flex: 1;
+  min-width: 180px;
+  max-width: 260px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(99,102,241,0.07);
+  padding: 0.8rem;
+  margin: 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.gallery-title {
+  color: #3b3b5c;
+  font-size: 1.1rem;
+  margin: 0;
+  font-weight: bold;
+}
+.gallery-desc {
+  font-size: 0.92rem;
+  margin: 0;
+  color: var(--secondary-color, #666);
+}
+
+/* Ultimate Trivia Exam Card */
+.ultimate-trivia-card {
+  max-width: 400px;
+  margin: 40px auto;
+  background: linear-gradient(135deg, #f8fafc 60%, #e0e7ff 100%);
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+  padding: 2rem;
+  text-align: center;
+  border: none;
+}
+.ultimate-title {
+  color: #3b3b5c;
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 0.75rem;
+}
+.ultimate-desc {
+  font-size: 1rem;
+  color: var(--secondary-color, #666);
+  margin-bottom: 0.75rem;
+}
+.ultimate-list {
+  text-align: left;
+  margin: 1rem auto;
+  max-width: 320px;
+  color: #444;
+  font-size: 1rem;
+}
+.ultimate-btn {
+  background: linear-gradient(90deg, #6366f1 60%, #818cf8 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 2rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.10);
+}
+
+/* Button hover animation */
+.btn-hover-animate {
+  transition: background 0.4s cubic-bezier(0.4,0,0.2,1), letter-spacing 0.18s cubic-bezier(0.4,0,0.2,1), box-shadow 0.18s cubic-bezier(0.4,0,0.2,1);
+}
+.btn-hover-animate:hover, .btn-hover-animate:focus {
+  background: linear-gradient(90deg, #a21caf 0%, #6366f1 100%);
+  letter-spacing: 2px;
+  box-shadow: 0 6px 24px 0 rgba(99,102,241,0.18), 0 1.5px 6px 0 rgba(99,102,241,0.10);
+  outline: none;
+}

@@ -9,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 
 @Entity
 @Table(name = "questions")
@@ -18,12 +19,16 @@ public class Question implements Serializable {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @NotNull(message = "Question text is required")
     private String questionText;
 
+    @NotNull(message = "Options are required")
     private List<String> options;
 
+    @NotNull(message = "Correct answer is required")
     private String correctAnswer;
 
+    @NotNull(message = "Multiple answers flag is required")
     private Boolean isMultipleAnswers;
 
     // Constructors, getters, and setters
