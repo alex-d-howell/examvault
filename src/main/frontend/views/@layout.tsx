@@ -4,6 +4,7 @@ import { ExamService } from "Frontend/generated/endpoints";
 import { useEffect } from 'react';
 import Font from 'react-font';
 import './layout.css';
+import { Icon } from '@vaadin/react-components';
 
 export default function MainLayout() {
 
@@ -90,7 +91,7 @@ export default function MainLayout() {
         <main className="main-content"><Outlet /></main>
         <footer className="main-footer">
           <p>© 2025 Exam Vault</p>
-          <i>Developed by Alex Howell</i>
+          <a target='_blank' href='https://github.com/alex-d-howell/examvault'><i>Developed by Alex Howell </i></a>
         </footer>
       </Font>
     </div>
