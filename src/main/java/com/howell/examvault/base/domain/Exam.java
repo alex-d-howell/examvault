@@ -33,10 +33,9 @@ public class Exam implements Serializable {
     @Size(max = 5000, message = "Description cannot exceed 5000 characters")
     private String description;
     
-    // Fixed: Added JoinColumn and Valid annotation, removed NotNull
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
-    @JoinColumn(name = "exam_id") // This creates the foreign key in questions table
-    @Valid // This ensures questions are validated too
+    @JoinColumn(name = "exam_id")
+    @Valid
     private List<Question> questions;
     
     private String uploadedBy;
