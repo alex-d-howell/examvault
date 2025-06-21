@@ -25,12 +25,13 @@ public class Answer implements Serializable{
     
     private String answerChoice;
 
-    // Constructors, getters, and setters
-    public Answer() {}
     public Answer(Question question, String answerChoice) {
         this.question = question;
         this.answerChoice = answerChoice;
     }
+    
+    public Answer() {}
+
     public UUID getId() {
         return id;
     }
