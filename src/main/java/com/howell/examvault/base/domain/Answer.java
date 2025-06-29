@@ -1,57 +1,56 @@
 package com.howell.examvault.base.domain;
 
 import java.io.Serializable;
+import java.util.List;
 import java.util.UUID;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "answers")
-public class Answer implements Serializable{
+@Table(name = "answer")
+public class Answer implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne
-    @JoinColumn(name = "question_id", nullable = false)
-    private Question question;
-    
-    private String answerChoice;
+    private UUID questionId;
 
-    public Answer(Question question, String answerChoice) {
-        this.question = question;
-        this.answerChoice = answerChoice;
+    private List<String> answerChoices;
+
+    public Answer(UUID questionId, List<String> answerChoices) {
+        this.questionId = questionId;
+        this.answerChoices = answerChoices;
     }
-    
-    public Answer() {}
+
+    public Answer() {
+    }
 
     public UUID getId() {
         return id;
     }
+
     public void setId(UUID id) {
         this.id = id;
     }
 
-    public Question getQuestion() {
-        return question;
+    public UUID getQuestionId() {
+        return questionId;
     }
 
-    public void setQuestion(Question question) {
-        this.question = question;
+    public void setQuestion(UUID questionId) {
+        this.questionId = questionId;
     }
 
-    public String getAnswerChoice() {
-        return answerChoice;
+    public List<String> getAnswerChoices() {
+        return answerChoices;
     }
 
-    public void setAnswerChoice(String answerChoice) {
-        this.answerChoice = answerChoice;
+    public void setAnswerChoices(List<String> answerChoices) {
+        this.answerChoices = answerChoices;
     }
 }

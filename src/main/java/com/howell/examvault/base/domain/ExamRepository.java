@@ -8,5 +8,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ExamRepository extends JpaRepository<Exam, UUID> {
 
     public List<Exam> findByTitleContainingIgnoreCaseAndUploadedByContainingIgnoreCase(String title, String uploadedBy);
-    
+
 }

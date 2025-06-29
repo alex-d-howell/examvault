@@ -2,11 +2,14 @@ import Exam from 'Frontend/generated/com/howell/examvault/base/domain/Exam';
 import Question from 'Frontend/generated/com/howell/examvault/base/domain/Question';
 import { ExamService } from 'Frontend/generated/endpoints';
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { Icon } from '@vaadin/react-components';
 import './profile.css';
+import { ConfirmationButton } from 'Frontend/components/confirmationButton';
 
 export default function ProfileView() {
+
+    const navigate = useNavigate();
     const { examId } = useParams<{ examId: string }>();
     const [exam, setExam] = useState<Exam | null>(null);
     const [loading, setLoading] = useState(true);
@@ -59,17 +62,9 @@ export default function ProfileView() {
         setExpandedQuestions(newExpanded);
     };
 
-    const getCorrectAnswers = (question: Question) => {
-        if (question.isMultipleAnswers) {
-            return question.correctAnswer?.split(',').map(answer => answer.trim());
-        }
-        return [question.correctAnswer];
-    };
-
     const isCorrectAnswer = (option: string, question: Question) => {
-        const correctAnswers = getCorrectAnswers(question);
-        return correctAnswers?.includes(option);
-    };
+    return question.correctAnswers?.includes(option) || false;
+};
 
     if (loading) {
         return (
@@ -184,7 +179,7 @@ export default function ProfileView() {
                 </div>
 
                 {/* Questions Section */}
-                {exam.questions && exam.questions.length > 0 ? (
+                {exam.questions && exam.questions.length > 0 ? (<>
                     <div className="questions-card">
                         <div className="questions-header">
                             <h2 className="questions-title">
@@ -260,7 +255,20 @@ export default function ProfileView() {
                             })}
                         </div>
                     </div>
-                ) : (
+                    <div>
+                        <ConfirmationButton
+                            action="Begin Exam"
+                            modalTitle="Attempt Exam"
+                            modalDescription={`Are you sure you want to attempt "${exam.title}"?`}
+                            buttonText="Attempt Exam"
+                            buttonClassName="m-s"
+                            buttonTheme="primary"
+                            onYes={() => {
+                                navigate(`/exams/${exam.id}/attempt`);
+                            }}
+                        />
+                    </div>
+                </>) : (
                     <div className="no-questions-card">
                         <Icon icon="vaadin:file-text" className="no-questions-icon"></Icon>
                         <p className="no-questions-text">No questions available for this exam.</p>

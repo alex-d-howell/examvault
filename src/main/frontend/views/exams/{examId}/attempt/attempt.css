@@ -506,3 +506,122 @@
     flex-direction: column;
   }
 }
+
+.exam-results {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.result-summary {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.result-summary h3 {
+    margin: 0 0 1rem 0;
+    color: #495057;
+    font-size: 1.2rem;
+}
+
+.score-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+
+.score {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #28a745;
+}
+
+.score-divider {
+    font-size: 2rem;
+    color: #6c757d;
+}
+
+.total-score {
+    font-size: 2rem;
+    color: #6c757d;
+}
+
+.percentage {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.attempt-details {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+
+.detail-item.passed {
+    background: #d4edda;
+    border-color: #c3e6cb;
+    color: #155724;
+}
+
+.detail-item.failed {
+    background: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
+}
+
+.detail-icon {
+    width: 1.2rem;
+    height: 1.2rem;
+    flex-shrink: 0;
+}
+
+.exam-submitted-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    justify-content: center;
+}
+
+.exam-submitted-button.secondary {
+    background: #6c757d;
+    border-color: #6c757d;
+}
+
+.exam-submitted-button.secondary:hover {
+    background: #5a6268;
+    border-color: #545b62;
+}
+
+.error-icon {
+    color: #dc2626;
+}
+
+.button-icon {
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.5rem;
+}
+
+.spinning {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}

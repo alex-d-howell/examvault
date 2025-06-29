@@ -5,15 +5,18 @@ import { Icon } from "@vaadin/react-components";
 import { useState, useCallback, useEffect } from 'react';
 import { useParams } from "react-router";
 import './attempt.css';
+import ExamAttempt from 'Frontend/generated/com/howell/examvault/base/domain/ExamAttempt';
+import Answer from 'Frontend/generated/com/howell/examvault/base/domain/Answer';
 
-// Define the type for answers state
+// Define the type for answers state - always using arrays
 interface AnswersState {
-    [questionId: string]: string;
+    [questionId: string]: string[];
 }
 
 export default function AttemptView() {
     const { examId } = useParams<{ examId: string }>();
     const [exam, setExam] = useState<Exam | null>(null);
+    const [examAttempt, setExamAttempt] = useState<ExamAttempt | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -40,8 +43,26 @@ export default function AttemptView() {
                 const fetchedExam = await ExamService.getExamById(examId);
                 console.log('Fetched Exam:', fetchedExam);
 
-                if (fetchedExam) {
-                    setExam(fetchedExam);
+                if (fetchedExam && fetchedExam.questions) {
+                    // Create a new exam object with shuffled questions and options
+                    const processedExam = {
+                        ...fetchedExam,
+                        questions: shuffleArray([...fetchedExam.questions.filter(q => q != null)])
+                            .map(question => ({
+                                ...question,
+                                options: question?.options ? shuffleArray([...question.options]) : []
+                            }))
+                    };
+                    setExam(processedExam);
+
+                    // Initialize answers state with empty arrays for all questions
+                    const initialAnswers: AnswersState = {};
+                    processedExam.questions.forEach((question) => {
+                        if (question?.id) {
+                            initialAnswers[question.id] = [];
+                        }
+                    });
+                    setAnswers(initialAnswers);
                 } else {
                     setError('Exam not found');
                 }
@@ -57,16 +78,18 @@ export default function AttemptView() {
         fetchExam();
     }, [examId]);
 
+    // For single answer questions (radio buttons) - now using arrays too
     const handleAnswerChange = useCallback((questionId: string, answer: string) => {
         setAnswers(prev => ({
             ...prev,
-            [questionId]: answer
+            [questionId]: [answer] // Always store as array, even for single answers
         }));
     }, []);
 
+    // Updated for multiple answer questions (checkboxes)
     const handleMultipleAnswerChange = useCallback((questionId: string, option: string, checked: boolean) => {
         setAnswers(prev => {
-            const currentAnswers = prev[questionId] ? prev[questionId].split(',') : [];
+            const currentAnswers = prev[questionId] || [];
             let newAnswers: string[];
 
             if (checked) {
@@ -77,7 +100,7 @@ export default function AttemptView() {
 
             return {
                 ...prev,
-                [questionId]: newAnswers.join(',')
+                [questionId]: newAnswers
             };
         });
     }, []);
@@ -99,17 +122,70 @@ export default function AttemptView() {
     };
 
     const handleSubmitExam = () => {
+        if (Object.keys(answers).length === 0) {
+            setError('You must answer at least one question before submitting.');
+            return;
+        }
+
+        console.log('Raw answers:', answers);
+
+        // Convert answers to the format expected by the backend
+        const answersList = Object.entries(answers)
+            .filter(([_, answerArray]) => answerArray.length > 0) // Only include answered questions
+            .map(([questionId, answerArray]) => {
+                return {
+                    questionId: questionId,
+                    answerChoices: answerArray
+                };
+            }) as Answer[];
+
+        console.log('Formatted answers for submission:', answersList);
+
+        // Submit the exam answers
+        ExamService.submitExamAttempt(examId, new Date().getTime().toString(), new Date().getTime().toString(), answersList)
+            .then((result) => {
+                setExamAttempt(result || null);
+                console.log('Exam submitted successfully');
+                console.log('Exam Attempt:', result);
+            })
+            .catch((err: any) => {
+                console.error('Error submitting exam:', err);
+                setError('Failed to submit exam. Please try again.');
+            });
+
         setIsExamSubmitted(true);
         setShowConfirmDialog(false);
     };
 
     const getQuestionStatus = (questionId: string) => {
-        return answers[questionId] ? 'answered' : 'unanswered';
+        const answer = answers[questionId];
+        return answer && answer.length > 0 ? 'answered' : 'unanswered';
     };
 
     const getAnsweredCount = () => {
-        return Object.keys(answers).length;
+        return Object.values(answers).filter(answer => answer && answer.length > 0).length;
     };
+
+    function shuffleArray<T>(array: T[]): T[] {
+        const newArray = [...array]; // Create a copy to avoid mutation
+        let currentIndex = newArray.length;
+        let randomIndex: number;
+
+        // While there remain elements to shuffle.
+        while (currentIndex !== 0) {
+            // Pick a remaining element.
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex--;
+
+            // And swap it with the current element.
+            [newArray[currentIndex], newArray[randomIndex]] = [
+                newArray[randomIndex],
+                newArray[currentIndex],
+            ];
+        }
+
+        return newArray;
+    }
 
     if (loading) {
         return (
@@ -140,7 +216,8 @@ export default function AttemptView() {
                     <Icon icon="vaadin:check-circle" className="exam-submitted-icon"></Icon>
                     <h2 className="exam-submitted-title">Exam Submitted!</h2>
                     <p className="exam-submitted-text">
-                        Your answers have been recorded successfully. You answered {getAnsweredCount()} out of {exam.questions?.length || 0} questions.
+                        {`Your exam "${exam.title}" has been successfully submitted.`}
+                        {`Score: ${((examAttempt?.numberCorrect || 0) / (exam.questions?.length || 0)) * 100}%`}
                     </p>
                     <button
                         onClick={() => window.location.reload()}
@@ -153,7 +230,7 @@ export default function AttemptView() {
         );
     }
 
-    // Check if exam and questions exist
+    // Check if exam questions exist
     if (!exam.questions || exam.questions.length === 0) {
         return (
             <div className="loading-container">
@@ -166,7 +243,7 @@ export default function AttemptView() {
     }
 
     const currentQuestion = exam.questions[currentQuestionIndex];
-    const currentAnswer = answers[currentQuestion?.id || ''] || '';
+    const currentAnswer = answers[currentQuestion?.id || ''] || []; // Provide default empty array
 
     // Should not happen if the exam is properly structured...
     if (!currentQuestion) {
@@ -264,12 +341,12 @@ export default function AttemptView() {
 
                         <div className="options-container">
                             {currentQuestion.options?.map((option: string | undefined, index: number) => (
-                                <div key={index} className="option-item">
+                                <div key={`${currentQuestion.id}-${index}`} className="option-item">
                                     {currentQuestion.isMultipleAnswers ? (
                                         <input
                                             type="checkbox"
                                             id={`option-${currentQuestion.id}-${index}`}
-                                            checked={currentAnswer.split(',').includes(option || '')}
+                                            checked={currentAnswer.includes(option || '')}
                                             onChange={(e) => handleMultipleAnswerChange(currentQuestion.id || '', (option || ''), e.target.checked)}
                                             className="option-checkbox"
                                         />
@@ -278,8 +355,8 @@ export default function AttemptView() {
                                             type="radio"
                                             id={`option-${currentQuestion.id}-${index}`}
                                             name={`question-${currentQuestion.id}`}
-                                            value={option}
-                                            checked={currentAnswer === option}
+                                            value={option || ''}
+                                            checked={currentAnswer.includes(option || '')}
                                             onChange={(e) => handleAnswerChange(currentQuestion.id || '', e.target.value)}
                                             className="option-radio"
                                         />

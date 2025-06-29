@@ -33,6 +33,7 @@ export default function MainLayout() {
     rerouteHomePath();
   }, []);
 
+  //configure the nav options to become a hamburger menu on small screens
   return (
     <div className="main-layout-root">
       <Font family='Montserrat'>
