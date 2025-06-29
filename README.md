@@ -2,12 +2,9 @@
 
 ### To Do List
 
-
-- Add Ratings to Exams/Exam Details
-- Add Explanation to Question object and views
-- Add Comments to Exam/Exam Details
-- Complete Exam Attempt View
-- Complete Exam Results View
+- Modify Result View to display each question with correct answer and explanation
+- Display comments on exam profile
+- Update list view to have more sort/filter criteria
 - Complete User Login/Register View
 - Configure application to use Postgres
 - Develop & document deployment procedures

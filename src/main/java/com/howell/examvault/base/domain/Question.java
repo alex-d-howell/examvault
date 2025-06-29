@@ -12,7 +12,7 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 
 @Entity
-@Table(name = "questions")
+@Table(name = "question")
 public class Question implements Serializable {
 
     @Id
@@ -26,20 +26,22 @@ public class Question implements Serializable {
     private List<String> options;
 
     @NotNull(message = "Correct answer is required")
-    private String correctAnswer;
+    private List<String> correctAnswers;
 
     @NotNull(message = "Multiple answers flag is required")
     private Boolean isMultipleAnswers;
 
-    // Constructors, getters, and setters
+    private String explanation;
+
     public Question() {
     }
 
-    public Question(String questionText, List<String> options, String correctAnswer, Boolean isMultipleAnswers) {
+    public Question(String questionText, List<String> options, List<String> correctAnswers, Boolean isMultipleAnswers, String explanation) {
         this.questionText = questionText;
         this.options = options;
-        this.correctAnswer = correctAnswer;
+        this.correctAnswers = correctAnswers;
         this.isMultipleAnswers = isMultipleAnswers;
+        this.explanation = explanation;
     }
 
     public UUID getId() {
@@ -54,12 +56,12 @@ public class Question implements Serializable {
         this.isMultipleAnswers = isMultipleAnswers;
     }
 
-    public String getCorrectAnswer() {
-        return correctAnswer;
+    public List<String> getCorrectAnswers() {
+        return correctAnswers;
     }
 
-    public void setCorrectAnswer(String correctAnswer) {
-        this.correctAnswer = correctAnswer;
+    public void setCorrectAnswers(List<String> correctAnswers) {
+        this.correctAnswers = correctAnswers;
     }
 
     public List<String> getOptions() {
@@ -76,5 +78,13 @@ public class Question implements Serializable {
 
     public void setQuestionText(String questionText) {
         this.questionText = questionText;
+    }
+
+    public String getExplanation() {
+        return explanation;
+    }
+
+    public void setExplanation(String explanation) {
+        this.explanation = explanation;
     }
 }

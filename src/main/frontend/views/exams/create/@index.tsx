@@ -19,8 +19,7 @@ export default function CreateView() {
 
   const [questionText, setQuestionText] = useState<string>('');
   const [options, setOptions] = useState<string[]>(['', '']); // Start with at least 2 options
-  const [correctAnswer, setCorrectAnswer] = useState<string>('');
-  const [multiCorrect, setMultiCorrect] = useState<number[]>([]);
+  const [correctAnswer, setCorrectAnswer] = useState<string[]>([]); // Now always an array
   const [isMultipleAnswers, setIsMultipleAnswers] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitMessage, setSubmitMessage] = useState<SubmitMessage | null>(null);
@@ -29,21 +28,15 @@ export default function CreateView() {
   const [isQuestionValid, setIsQuestionValid] = useState<boolean>(false);
   const [isExamValid, setIsExamValid] = useState<boolean>(false);
 
-  // Use a temporary ID for frontend operations (will be replaced by backend)
-  const generateTempId = (): string => {
-    return `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  };
-
   // Update validation when state changes
   useEffect(() => {
     const hasValidOptions = options.length >= 2 && options.every(opt => opt?.trim());
-    const hasValidAnswer = isMultipleAnswers
-      ? multiCorrect.length > 0 && multiCorrect.every(idx => idx >= 0 && idx < options.length)
-      : correctAnswer.trim() && options.some(opt => opt === correctAnswer);
+    const hasValidAnswer = correctAnswer.length > 0 && 
+      correctAnswer.every(answer => options.includes(answer));
 
     const questionValid = Boolean(questionText.trim() && hasValidOptions && hasValidAnswer);
     setIsQuestionValid(questionValid);
-  }, [questionText, options, correctAnswer, multiCorrect, isMultipleAnswers]);
+  }, [questionText, options, correctAnswer, isMultipleAnswers]);
 
   useEffect(() => {
     const examValid = Boolean(
@@ -55,56 +48,54 @@ export default function CreateView() {
     setIsExamValid(examValid && !isSubmitting);
   }, [exam, isSubmitting]);
 
-  // Add new option
   const addOption = (): void => {
     setOptions([...options, '']);
   };
 
-  // Remove option
   const removeOption = (index: number): void => {
     if (options.length > 2) { // Keep at least 2 options
+      const removedOption = options[index];
       const newOptions = options.filter((_, i) => i !== index);
       setOptions(newOptions);
 
-      // Reset answers if they reference removed option
-      if (correctAnswer === options[index]) {
-        setCorrectAnswer('');
-      }
-      setMultiCorrect(multiCorrect.filter(idx => idx !== index).map(idx => idx > index ? idx - 1 : idx));
+      // Remove from correctAnswer if it was selected
+      setCorrectAnswer(prev => prev.filter(answer => answer !== removedOption));
     }
   };
 
-  // Update option text
   const updateOption = (index: number, value: string): void => {
+    const oldValue = options[index];
     const newOptions = [...options];
     newOptions[index] = value;
     setOptions(newOptions);
 
-    // Update correctAnswer if it was pointing to this option
-    if (correctAnswer === options[index]) {
-      setCorrectAnswer(value);
-    }
-  };
-
-  // Handle multiple correct answers
-  const toggleMultiCorrect = (index: number): void => {
-    setMultiCorrect(prev =>
-      prev.includes(index)
-        ? prev.filter(i => i !== index)
-        : [...prev, index]
+    // Update correctAnswer if it contained the old value
+    setCorrectAnswer(prev => 
+      prev.map(answer => answer === oldValue ? value : answer)
     );
   };
 
-  // Add question to exam - properly using Question model
+  // Handle correct answer selection for single answer questions
+  const handleSingleCorrectAnswer = (option: string): void => {
+    setCorrectAnswer([option]);
+  };
+
+  // Handle correct answer selection for multiple answer questions
+  const toggleMultipleCorrectAnswer = (option: string): void => {
+    setCorrectAnswer(prev =>
+      prev.includes(option)
+        ? prev.filter(answer => answer !== option)
+        : [...prev, option]
+    );
+  };
+
   const addQuestion = (): void => {
     if (!isQuestionValid) return;
 
     const question = {
       questionText: questionText,
       options: [...options],
-      correctAnswer: isMultipleAnswers
-        ? multiCorrect.map(idx => options[idx]?.trim()).join(',')
-        : correctAnswer,
+      correctAnswers: [...correctAnswer],
       isMultipleAnswers: isMultipleAnswers
     };
 
@@ -116,8 +107,7 @@ export default function CreateView() {
     // Reset question form
     setQuestionText('');
     setOptions(['', '']);
-    setCorrectAnswer('');
-    setMultiCorrect([]);
+    setCorrectAnswer([]);
     setIsMultipleAnswers(false);
   };
 
@@ -125,7 +115,7 @@ export default function CreateView() {
   const removeQuestion = (questionId: string): void => {
     setExam(prev => ({
       ...prev,
-      questions: prev.questions?.filter(q => q?.id !== questionId) || []
+      questions: prev.questions?.filter(question => question?.id !== questionId) || []
     }));
   };
 
@@ -137,7 +127,7 @@ export default function CreateView() {
     setSubmitMessage(null);
 
     try {
-
+      console.log(exam)
       await ExamService.saveExam(exam);
 
       setSubmitMessage({ type: 'success', text: 'Exam created successfully!' });
@@ -235,8 +225,8 @@ export default function CreateView() {
                 <input
                   type="radio"
                   name="correctAnswer"
-                  checked={correctAnswer === option}
-                  onChange={() => setCorrectAnswer(option)}
+                  checked={correctAnswer.includes(option)}
+                  onChange={() => handleSingleCorrectAnswer(option)}
                   className="radio-input"
                 />
               )}
@@ -244,8 +234,8 @@ export default function CreateView() {
               {isMultipleAnswers && (
                 <input
                   type="checkbox"
-                  checked={multiCorrect.includes(index)}
-                  onChange={() => toggleMultiCorrect(index)}
+                  checked={correctAnswer.includes(option)}
+                  onChange={() => toggleMultipleCorrectAnswer(option)}
                   className="checkbox-input"
                 />
               )}
@@ -270,8 +260,7 @@ export default function CreateView() {
               checked={isMultipleAnswers}
               onChange={(e) => {
                 setIsMultipleAnswers(e.target.checked);
-                setCorrectAnswer('');
-                setMultiCorrect([]);
+                setCorrectAnswer([]);
               }}
             />
             <span>Allow multiple correct answers</span>
@@ -313,19 +302,7 @@ export default function CreateView() {
                 <ul>
                   {question?.options?.map((opt, optIndex) => {
                     // Check if this option is a correct answer
-                    let isCorrect = false;
-
-                    if (question.correctAnswer && opt) {
-                      if (question.isMultipleAnswers) {
-                        // For multiple answers, check if this option is in the comma-separated list
-                        const correctAnswers = question.correctAnswer.split(',').map(answer => answer.trim());
-                        isCorrect = correctAnswers.includes(opt.trim());
-                      } else {
-                        // For single answer, direct comparison
-                        isCorrect = question.correctAnswer === opt;
-                      }
-                    }
-
+                    const isCorrect = question.correctAnswers?.includes(opt) || false;
                     return (
                       <li key={index + "-" + optIndex} className={isCorrect ? 'correct' : ''}>
                         {opt}
