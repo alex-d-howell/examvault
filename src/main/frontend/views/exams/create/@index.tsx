@@ -24,6 +24,10 @@ export default function CreateView() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitMessage, setSubmitMessage] = useState<SubmitMessage | null>(null);
 
+  // Editing states
+  const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
+
   // Validation states
   const [isQuestionValid, setIsQuestionValid] = useState<boolean>(false);
   const [isExamValid, setIsExamValid] = useState<boolean>(false);
@@ -31,7 +35,7 @@ export default function CreateView() {
   // Update validation when state changes
   useEffect(() => {
     const hasValidOptions = options.length >= 2 && options.every(opt => opt?.trim());
-    const hasValidAnswer = correctAnswer.length > 0 && 
+    const hasValidAnswer = correctAnswer.length > 0 &&
       correctAnswer.every(answer => options.includes(answer));
 
     const questionValid = Boolean(questionText.trim() && hasValidOptions && hasValidAnswer);
@@ -70,7 +74,7 @@ export default function CreateView() {
     setOptions(newOptions);
 
     // Update correctAnswer if it contained the old value
-    setCorrectAnswer(prev => 
+    setCorrectAnswer(prev =>
       prev.map(answer => answer === oldValue ? value : answer)
     );
   };
@@ -89,6 +93,40 @@ export default function CreateView() {
     );
   };
 
+  // Reset question form to initial state
+  const resetQuestionForm = (): void => {
+    setQuestionText('');
+    setOptions(['', '']);
+    setCorrectAnswer([]);
+    setIsMultipleAnswers(false);
+    setIsEditMode(false);
+    setEditingQuestionIndex(null);
+  };
+
+  // Start editing a question
+  const startEditQuestion = (questionIndex: number): void => {
+    const question = exam.questions?.[questionIndex];
+    if (!question) return;
+
+    setQuestionText(question.questionText || '');
+    setOptions(question.options ? question.options.filter((opt): opt is string => opt != null) : ['', '']);
+    setCorrectAnswer(question.correctAnswers ? question.correctAnswers.filter((ans): ans is string => ans != null) : []);
+    setIsMultipleAnswers(question.isMultipleAnswers || false);
+    setEditingQuestionIndex(questionIndex);
+    setIsEditMode(true);
+
+    // Scroll to question builder
+    document.querySelector('.exam-section:nth-child(3)')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
+  };
+
+  // Cancel editing and reset form
+  const cancelEdit = (): void => {
+    resetQuestionForm();
+  };
+
   const addQuestion = (): void => {
     if (!isQuestionValid) return;
 
@@ -99,24 +137,42 @@ export default function CreateView() {
       isMultipleAnswers: isMultipleAnswers
     };
 
-    setExam(prev => ({
-      ...prev,
-      questions: [...(prev.questions || []), question]
-    }));
+    if (isEditMode && editingQuestionIndex !== null) {
+      // Update existing question
+      setExam(prev => {
+        const updatedQuestions = [...(prev.questions || [])];
+        updatedQuestions[editingQuestionIndex] = question;
+        return {
+          ...prev,
+          questions: updatedQuestions
+        };
+      });
+    } else {
+      // Add new question
+      setExam(prev => ({
+        ...prev,
+        questions: [...(prev.questions || []), question]
+      }));
+    }
 
     // Reset question form
-    setQuestionText('');
-    setOptions(['', '']);
-    setCorrectAnswer([]);
-    setIsMultipleAnswers(false);
+    resetQuestionForm();
   };
 
   // Remove question from exam
-  const removeQuestion = (questionId: string): void => {
+  const removeQuestion = (questionIndex: number): void => {
     setExam(prev => ({
       ...prev,
-      questions: prev.questions?.filter(question => question?.id !== questionId) || []
+      questions: prev.questions?.filter((_, index) => index !== questionIndex) || []
     }));
+
+    // If we're editing the question being removed, cancel edit
+    if (editingQuestionIndex === questionIndex) {
+      cancelEdit();
+    } else if (editingQuestionIndex !== null && editingQuestionIndex > questionIndex) {
+      // Adjust editing index if a question before the edited one was removed
+      setEditingQuestionIndex(editingQuestionIndex - 1);
+    }
   };
 
   // Submit exam to backend
@@ -134,6 +190,7 @@ export default function CreateView() {
 
       // Reset form
       setExam({ title: '', description: '', questions: [] });
+      resetQuestionForm();
     } catch (error) {
       console.error('Error creating exam:', error);
       setSubmitMessage({
@@ -182,7 +239,12 @@ export default function CreateView() {
 
       {/* Question Builder */}
       <div className="exam-section">
-        <h2>Add Question</h2>
+        <h2>
+          {isEditMode ? 'Edit Question' : 'Add Question'}
+          {isEditMode && editingQuestionIndex !== null && (
+            <span className="edit-indicator"> (Question {editingQuestionIndex + 1})</span>
+          )}
+        </h2>
 
         <div className="form-group">
           <label className="form-label">
@@ -267,14 +329,26 @@ export default function CreateView() {
           </label>
         </div>
 
-        <button
-          onClick={addQuestion}
-          disabled={!isQuestionValid}
-          className={`btn-primary ${isQuestionValid ? 'enabled' : 'disabled'}`}
-          type="button"
-        >
-          Add Question to Exam
-        </button>
+        <div className="question-actions">
+          <button
+            onClick={addQuestion}
+            disabled={!isQuestionValid}
+            className={`btn-primary ${isQuestionValid ? 'enabled' : 'disabled'}`}
+            type="button"
+          >
+            {isEditMode ? 'Update Question' : 'Add Question to Exam'}
+          </button>
+
+          {isEditMode && (
+            <button
+              onClick={cancelEdit}
+              className="btn-secondary"
+              type="button"
+            >
+              Cancel Edit
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Questions List */}
@@ -283,21 +357,40 @@ export default function CreateView() {
           <h2>Questions ({exam.questions.length})</h2>
 
           {exam.questions.map((question, index) => (
-            <div key={question?.id} className="question-card">
+            <div
+              key={index}
+              className={`question-card ${editingQuestionIndex === index ? 'editing' : ''}`}
+            >
               <div className="question-header">
                 <h3>Question {index + 1}</h3>
-                <button
-                  onClick={() => question?.id && removeQuestion(question.id)}
-                  className="remove-btn"
-                  type="button"
-                >
-                  Remove
-                </button>
+                <div className="question-actions">
+                  <button
+                    onClick={() => startEditQuestion(index)}
+                    className="edit-btn"
+                    type="button"
+                    disabled={isEditMode && editingQuestionIndex !== index}
+                  >
+                    <Icon icon="vaadin:edit" />
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => removeQuestion(index)}
+                    className="remove-btn"
+                    type="button"
+                    disabled={isEditMode && editingQuestionIndex === index}
+                  >
+                    <Icon icon="vaadin:trash" />
+                    Remove
+                  </button>
+                </div>
               </div>
 
               <p className="question-text">{question?.questionText}</p>
 
               <div className="question-options">
+                <div className="question-type">
+                  Type: {question?.isMultipleAnswers ? 'Multiple Answers' : 'Single Answer'}
+                </div>
                 <div>Options:</div>
                 <ul>
                   {question?.options?.map((opt, optIndex) => {
@@ -306,6 +399,7 @@ export default function CreateView() {
                     return (
                       <li key={index + "-" + optIndex} className={isCorrect ? 'correct' : ''}>
                         {opt}
+                        {isCorrect && <Icon icon="vaadin:check" className="correct-icon" />}
                       </li>
                     );
                   })}
@@ -326,8 +420,8 @@ export default function CreateView() {
 
         <button
           onClick={submitExam}
-          disabled={!isExamValid}
-          className={`btn-submit ${isExamValid ? 'enabled' : 'disabled'}`}
+          disabled={!isExamValid || isEditMode}
+          className={`btn-submit ${(isExamValid && !isEditMode) ? 'enabled' : 'disabled'}`}
           type="button"
         >
           {isSubmitting ? (
@@ -342,6 +436,13 @@ export default function CreateView() {
             </>
           )}
         </button>
+
+        {isEditMode && (
+          <p className="edit-warning">
+            <Icon icon="vaadin:info-circle" />
+            Complete or cancel the current edit before submitting the exam.
+          </p>
+        )}
       </div>
     </div>
   );
