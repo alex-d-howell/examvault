@@ -268,6 +268,19 @@ export default function ProfileView() {
                             }}
                         />
                     </div>
+                    <div>
+                        <ConfirmationButton
+                            action="Edit Exam"
+                            modalTitle="Edit Exam"
+                            modalDescription={`Are you sure you want to modify "${exam.title}"?`}
+                            buttonText="Edit Exam"
+                            buttonClassName="m-s"
+                            buttonTheme="primary"
+                            onYes={() => {
+                                navigate(`/exams/${exam.id}/edit`);
+                            }}
+                        />
+                    </div>
                 </>) : (
                     <div className="no-questions-card">
                         <Icon icon="vaadin:file-text" className="no-questions-icon"></Icon>

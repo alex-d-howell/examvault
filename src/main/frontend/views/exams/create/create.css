@@ -282,6 +282,79 @@
   margin-right: 8px;
 }
 
+.edit-indicator {
+  font-weight: normal;
+  color: #666;
+  font-size: 0.9em;
+}
+
+.question-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.edit-btn, .remove-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size: 0.9em;
+}
+
+.edit-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+
+.edit-btn:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.question-card.editing {
+  border: 2px solid #007bff;
+  background-color: #f8f9ff;
+}
+
+.question-type {
+  font-size: 0.9em;
+  color: #666;
+  margin-bottom: 8px;
+  font-style: italic;
+}
+
+.correct-icon {
+  margin-left: 8px;
+  color: #28a745;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background-color: #545b62;
+}
+
+.edit-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #856404;
+  background-color: #fff3cd;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-top: 8px;
+  font-size: 0.9em;
+}
+
 @keyframes spin {
   0% {
     transform: rotate(0deg);
