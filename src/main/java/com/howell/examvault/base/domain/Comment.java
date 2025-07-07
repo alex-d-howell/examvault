@@ -26,8 +26,6 @@ public class Comment implements Serializable {
 
     private int examRating;
 
-    private int likes;
-
     public Comment() {
     }
 
@@ -77,11 +75,4 @@ public class Comment implements Serializable {
         this.examRating = examRating;
     }
 
-    public int getLikes() {
-        return likes;
-    }
-
-    public void setLikes(int likes) {
-        this.likes = likes;
-    }
 }
