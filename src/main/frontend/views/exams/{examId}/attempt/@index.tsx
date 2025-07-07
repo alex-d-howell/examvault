@@ -23,6 +23,121 @@ export default function AttemptView() {
     const [answers, setAnswers] = useState<AnswersState>({});
     const [isExamSubmitted, setIsExamSubmitted] = useState(false);
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+    const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+    const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+
+    // Check if user has made any changes (answered any questions)
+    const hasUnsavedChanges = () => {
+        return !isExamSubmitted && Object.values(answers).some(answer => answer && answer.length > 0);
+    };
+
+    // Handle beforeunload event for browser navigation
+    useEffect(() => {
+        const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+            if (hasUnsavedChanges()) {
+                const message = 'You have unsaved changes. Are you sure you want to leave?';
+                event.preventDefault();
+                event.returnValue = message; // For older browsers
+                return message;
+            }
+            return undefined; // Explicitly return undefined when no unsaved changes
+        };
+
+        // Add event listener
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        // Cleanup
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [answers, isExamSubmitted]);
+
+    // Handle beforeunload event for browser navigation (refresh, close tab, etc.)
+    useEffect(() => {
+        const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+            if (hasUnsavedChanges()) {
+                const message = 'You have unsaved changes. Are you sure you want to leave?';
+                event.preventDefault();
+                event.returnValue = message;
+                return message;
+            }
+            return undefined;
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [answers, isExamSubmitted]);
+
+    // Handle internal navigation (back/forward buttons, link clicks)
+    useEffect(() => {
+        let isNavigating = false;
+
+        const handleBeforeNavigation = () => {
+            if (hasUnsavedChanges() && !isNavigating) {
+                isNavigating = true;
+                setShowLeaveDialog(true);
+                return false; // Prevent navigation
+            }
+            return true; // Allow navigation
+        };
+
+        const handlePopState = (event: PopStateEvent) => {
+            if (hasUnsavedChanges() && !isNavigating) {
+                event.preventDefault();
+                // Push current state back to prevent navigation
+                window.history.pushState(null, document.title, window.location.href);
+                setShowLeaveDialog(true);
+            }
+        };
+
+        // Listen for back/forward button clicks
+        window.addEventListener('popstate', handlePopState);
+
+        // Intercept all link clicks
+        const handleLinkClick = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            const link = target.closest('a');
+            
+            if (link && hasUnsavedChanges() && !isNavigating) {
+                event.preventDefault();
+                event.stopPropagation();
+                setPendingNavigation(link.href);
+                setShowLeaveDialog(true);
+            }
+        };
+
+        document.addEventListener('click', handleLinkClick, true);
+
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+            document.removeEventListener('click', handleLinkClick, true);
+            isNavigating = false;
+        };
+    }, [hasUnsavedChanges]);
+
+    // Handle confirmed navigation
+    const handleConfirmLeave = () => {
+        setShowLeaveDialog(false);
+        
+        if (pendingNavigation) {
+            // Navigate to the clicked link
+            window.location.href = pendingNavigation;
+        } else {
+            // Handle back navigation
+            window.history.back();
+        }
+        
+        setPendingNavigation(null);
+    };
+
+    // Handle cancelled navigation
+    const handleCancelLeave = () => {
+        setShowLeaveDialog(false);
+        setPendingNavigation(null);
+    };
 
     useEffect(() => {
         const fetchExam = async () => {
@@ -420,6 +535,38 @@ export default function AttemptView() {
                                 className="dialog-button-primary"
                             >
                                 Submit Exam
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Leave Page Confirmation Dialog */}
+            {showLeaveDialog && (
+                <div className="dialog-overlay">
+                    <div className="dialog-content">
+                        <div className="dialog-header">
+                            <Icon icon="vaadin:warning" className="dialog-warning-icon"></Icon>
+                            <h3 className="dialog-title">Leave Page?</h3>
+                        </div>
+                        <p className="dialog-text">
+                            You have unsaved changes to your exam. Are you sure you want to leave this page?
+                        </p>
+                        <p className="dialog-subtext">
+                            Your progress will be lost if you leave without submitting.
+                        </p>
+                        <div className="dialog-actions">
+                            <button
+                                onClick={handleCancelLeave}
+                                className="dialog-button-secondary"
+                            >
+                                Stay on Page
+                            </button>
+                            <button
+                                onClick={handleConfirmLeave}
+                                className="dialog-button-primary"
+                            >
+                                Leave Page
                             </button>
                         </div>
                     </div>
