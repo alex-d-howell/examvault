@@ -2,6 +2,7 @@ package com.howell.examvault.base.domain;
 
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -49,7 +50,7 @@ public class Exam implements Serializable {
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @JoinColumn(name = "exam_id")
-    private List<Comment> comments;
+    private List<Comment> comments = new ArrayList<>();
 
     public Exam() {
     }
@@ -121,10 +122,16 @@ public class Exam implements Serializable {
     }
 
     public List<Comment> getComments() {
+        if (this.comments == null) {
+            this.comments = new ArrayList<>();
+        }
         return this.comments;
     }
 
     public void addComment(Comment comment) {
+        if (this.comments == null) {
+            this.comments = new ArrayList<>();
+        }
         this.comments.add(comment);
     }
 

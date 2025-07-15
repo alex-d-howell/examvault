@@ -1,13 +1,19 @@
 package com.howell.examvault.base.security;
 
+import java.io.IOException;
+
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import com.vaadin.flow.spring.security.VaadinWebSecurity;
 
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -19,50 +25,95 @@ public class SecurityConfiguration extends VaadinWebSecurity {
     protected void configure(HttpSecurity http) throws Exception {
         System.out.println("=== Configuring Security ===");
         
-        // First, apply Vaadin's default security configuration
-        // This is CRUCIAL for Hilla endpoints to work properly
+        // Apply Vaadin's default security configuration
         super.configure(http);
         
-        // Then customize with OAuth2 configuration
-        http
-            .oauth2Login(oauth2 -> oauth2
-                .loginPage("/login")
-                .defaultSuccessUrl("/home", true)  // Default redirect after OAuth2 success
-                .failureUrl("/login?error=true")
-                .successHandler((HttpServletRequest request, HttpServletResponse response, Authentication authentication) -> {
-                    System.out.println("=== OAuth2 SUCCESS HANDLER ===");
-                    System.out.println("OAuth2 login successful for user: " + authentication.getName());
-                    System.out.println("Authentication type: " + authentication.getClass().getSimpleName());
-                    System.out.println("Principal type: " + authentication.getPrincipal().getClass().getSimpleName());
-                    System.out.println("Authorities: " + authentication.getAuthorities());
-                    System.out.println("Session ID: " + request.getSession().getId());
-                    
-                    // Check if there's a saved redirect path in the session
-                    String redirectPath = (String) request.getSession().getAttribute("redirectPath");
-                    if (redirectPath != null && !redirectPath.equals("/login")) {
-                        request.getSession().removeAttribute("redirectPath");
-                        System.out.println("Redirecting to saved path: " + redirectPath);
-                        response.sendRedirect(redirectPath);
-                    } else {
-                        System.out.println("No saved path, redirecting to /home");
-                        response.sendRedirect("/home");
-                    }
-                })
-                .failureHandler((HttpServletRequest request, HttpServletResponse response, org.springframework.security.core.AuthenticationException exception) -> {
-                    System.out.println("=== OAuth2 FAILURE HANDLER ===");
-                    System.out.println("OAuth2 login failed: " + exception.getMessage());
-                    exception.printStackTrace();
-                    response.sendRedirect("/login?error=true");
-                })
-            )
-            .logout(logout -> logout
-                .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
-                .logoutSuccessUrl("/login")
-                .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID")
-                .clearAuthentication(true)
-            );
+        // Configure OAuth2 login
+        http.oauth2Login(oauth2 -> oauth2
+            .loginPage("/login")
+            .defaultSuccessUrl("/home", false)
+            .failureUrl("/login?error=true")
+            .successHandler(new OAuth2AuthenticationSuccessHandler())
+            .failureHandler(new OAuth2AuthenticationFailureHandler())
+        );
+        
+        // Configure logout
+        http.logout(logout -> logout
+            .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
+            .logoutSuccessUrl("/")
+            .invalidateHttpSession(true)
+            .deleteCookies("JSESSIONID")
+            .clearAuthentication(true)
+        );
             
         System.out.println("=== Security Configuration Complete ===");
+    }
+
+    /**
+     * Custom success handler for OAuth2 authentication
+     */
+    private static class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccessHandler {
+        
+        @Override
+        public void onAuthenticationSuccess(
+                HttpServletRequest request, 
+                HttpServletResponse response, 
+                Authentication authentication) throws IOException, ServletException {
+            
+            System.out.println("=== OAuth2 SUCCESS HANDLER ===");
+            System.out.println("OAuth2 login successful for user: " + authentication.getName());
+            System.out.println("Authentication type: " + authentication.getClass().getSimpleName());
+            System.out.println("Principal type: " + authentication.getPrincipal().getClass().getSimpleName());
+            
+            try {
+                // Check if there's a saved redirect path in the session
+                String redirectPath = (String) request.getSession().getAttribute("redirectPath");
+                if (redirectPath != null && !redirectPath.equals("/login") && !redirectPath.equals("/")) {
+                    request.getSession().removeAttribute("redirectPath");
+                    System.out.println("Redirecting to saved path: " + redirectPath);
+                    response.sendRedirect(redirectPath);
+                } else {
+                    System.out.println("No saved path, redirecting to home dashboard");
+                    response.sendRedirect("/home");
+                }
+            } catch (IOException e) {
+                System.err.println("Error during redirect after successful authentication: " + e.getMessage());
+                // Fallback redirect
+                response.sendRedirect("/home");
+            }
+        }
+    }
+
+    /**
+     * Custom failure handler for OAuth2 authentication
+     */
+    private static class OAuth2AuthenticationFailureHandler implements AuthenticationFailureHandler {
+        
+        @Override
+        public void onAuthenticationFailure(
+                HttpServletRequest request, 
+                HttpServletResponse response, 
+                AuthenticationException exception) throws IOException, ServletException {
+            
+            System.out.println("=== OAuth2 FAILURE HANDLER ===");
+            System.out.println("OAuth2 login failed: " + exception.getMessage());
+            System.out.println("Exception type: " + exception.getClass().getSimpleName());
+            
+            try {
+                // Clear any potentially problematic session data
+                if (request.getSession(false) != null) {
+                    request.getSession().removeAttribute("redirectPath");
+                }
+                
+                // Redirect to login with error parameter
+                response.sendRedirect("/login?error=true");
+            } catch (IOException e) {
+                System.err.println("Error during redirect after failed authentication: " + e.getMessage());
+                // If redirect fails, try to send an error response
+                if (!response.isCommitted()) {
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication failed");
+                }
+            }
+        }
     }
 }

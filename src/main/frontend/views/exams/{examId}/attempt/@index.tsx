@@ -1,9 +1,10 @@
 import Exam from 'Frontend/generated/com/howell/examvault/base/domain/Exam';
 import Question from 'Frontend/generated/com/howell/examvault/base/domain/Question';
 import { ExamService } from 'Frontend/generated/endpoints';
-import { Icon } from "@vaadin/react-components";
+import { Icon, Button } from "@vaadin/react-components";
 import { useState, useCallback, useEffect } from 'react';
-import { useParams } from "react-router";
+import { useParams, useNavigate } from "react-router";
+import { useAuth } from 'Frontend/hooks/useAuth.js';
 import './attempt.css';
 import ExamAttempt from 'Frontend/generated/com/howell/examvault/base/domain/ExamAttempt';
 import Answer from 'Frontend/generated/com/howell/examvault/base/domain/Answer';
@@ -13,8 +14,19 @@ interface AnswersState {
     [questionId: string]: string[];
 }
 
+// Interface for question results in detailed view
+interface QuestionResult {
+    questionId: string;
+    userAnswer: string[];
+    correctAnswer: string[];
+    isCorrect: boolean;
+}
+
 export default function AttemptView() {
     const { examId } = useParams<{ examId: string }>();
+    const { authenticated, user } = useAuth();
+    const navigate = useNavigate();
+    
     const [exam, setExam] = useState<Exam | null>(null);
     const [examAttempt, setExamAttempt] = useState<ExamAttempt | null>(null);
     const [loading, setLoading] = useState(true);
@@ -24,7 +36,53 @@ export default function AttemptView() {
     const [isExamSubmitted, setIsExamSubmitted] = useState(false);
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+    const [showSaveOption, setShowSaveOption] = useState(false);
+    const [saveAttempt, setSaveAttempt] = useState(authenticated);
+    const [submitting, setSubmitting] = useState(false);
     const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+    const [startTime] = useState(new Date());
+    const [showDetailedResults, setShowDetailedResults] = useState(false);
+
+    // Update saveAttempt when authentication status changes
+    useEffect(() => {
+        setSaveAttempt(authenticated);
+    }, [authenticated]);
+
+    // Function to get question results using existing ExamAttempt structure
+    const getQuestionResults = (): QuestionResult[] => {
+        if (!examAttempt?.selectedAnswers || !exam?.questions) {
+            return [];
+        }
+        
+        // Create a map of user answers by questionId
+        const userAnswersMap = new Map<string, string[]>();
+        examAttempt.selectedAnswers.forEach((answer) => {
+            if (answer?.questionId) {
+                // Filter out undefined values from answerChoices
+                const cleanAnswerChoices = (answer.answerChoices || []).filter((choice): choice is string => choice !== undefined);
+                userAnswersMap.set(answer.questionId, cleanAnswerChoices);
+            }
+        });
+        
+        // Build question results by comparing user answers with correct answers
+        return exam.questions.map((question) => {
+            if (!question?.id) return null;
+            
+            const userAnswer = userAnswersMap.get(question.id) || [];
+            const correctAnswer = (question.correctAnswers || []).filter((answer): answer is string => answer !== undefined);
+            
+            // Check if answer is correct (same length and contains all correct answers)
+            const isCorrect = userAnswer.length === correctAnswer.length && 
+                             correctAnswer.every(correct => userAnswer.includes(correct));
+            
+            return {
+                questionId: question.id,
+                userAnswer,
+                correctAnswer,
+                isCorrect
+            };
+        }).filter(result => result !== null) as QuestionResult[];
+    };
 
     // Check if user has made any changes (answered any questions)
     const hasUnsavedChanges = () => {
@@ -52,37 +110,9 @@ export default function AttemptView() {
         };
     }, [answers, isExamSubmitted]);
 
-    // Handle beforeunload event for browser navigation (refresh, close tab, etc.)
-    useEffect(() => {
-        const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-            if (hasUnsavedChanges()) {
-                const message = 'You have unsaved changes. Are you sure you want to leave?';
-                event.preventDefault();
-                event.returnValue = message;
-                return message;
-            }
-            return undefined;
-        };
-
-        window.addEventListener('beforeunload', handleBeforeUnload);
-
-        return () => {
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-        };
-    }, [answers, isExamSubmitted]);
-
     // Handle internal navigation (back/forward buttons, link clicks)
     useEffect(() => {
         let isNavigating = false;
-
-        const handleBeforeNavigation = () => {
-            if (hasUnsavedChanges() && !isNavigating) {
-                isNavigating = true;
-                setShowLeaveDialog(true);
-                return false; // Prevent navigation
-            }
-            return true; // Allow navigation
-        };
 
         const handlePopState = (event: PopStateEvent) => {
             if (hasUnsavedChanges() && !isNavigating) {
@@ -236,40 +266,74 @@ export default function AttemptView() {
         }
     };
 
-    const handleSubmitExam = () => {
+    const handleSignInToSave = () => {
+        // Store current exam state for restoration after login
+        sessionStorage.setItem('examInProgress', JSON.stringify({
+            examId,
+            answers,
+            startTime: startTime.toISOString(),
+            currentQuestionIndex
+        }));
+        navigate('/login');
+    };
+
+    const handleSubmitExam = async () => {
         if (Object.keys(answers).length === 0) {
             setError('You must answer at least one question before submitting.');
             return;
         }
 
-        console.log('Raw answers:', answers);
+        // For anonymous users, show save option first
+        if (!authenticated && !showSaveOption) {
+            setShowSaveOption(true);
+            setShowConfirmDialog(false);
+            return;
+        }
 
-        // Convert answers to the format expected by the backend
-        const answersList = Object.entries(answers)
-            .filter(([_, answerArray]) => answerArray.length > 0) // Only include answered questions
-            .map(([questionId, answerArray]) => {
-                return {
-                    questionId: questionId,
-                    answerChoices: answerArray
-                };
-            }) as Answer[];
-
-        console.log('Formatted answers for submission:', answersList);
-
-        // Submit the exam answers
-        ExamService.submitExamAttempt(examId, new Date().getTime().toString(), new Date().getTime().toString(), answersList)
-            .then((result) => {
-                setExamAttempt(result || null);
-                console.log('Exam submitted successfully');
-                console.log('Exam Attempt:', result);
-            })
-            .catch((err: any) => {
-                console.error('Error submitting exam:', err);
-                setError('Failed to submit exam. Please try again.');
-            });
-
-        setIsExamSubmitted(true);
+        setSubmitting(true);
         setShowConfirmDialog(false);
+        setShowSaveOption(false);
+
+        try {
+            console.log('Raw answers:', answers);
+            console.log('Save attempt preference:', saveAttempt);
+            console.log('User authenticated:', authenticated);
+
+            // Convert answers to the format expected by the backend
+            const answersList = Object.entries(answers)
+                .filter(([_, answerArray]) => answerArray.length > 0) // Only include answered questions
+                .map(([questionId, answerArray]) => {
+                    return {
+                        questionId: questionId,
+                        answerChoices: answerArray
+                    };
+                }) as Answer[];
+
+            console.log('Formatted answers for submission:', answersList);
+
+            const endTime = new Date();
+
+            // Use the simpler 4-parameter method - backend will handle save logic internally
+            const result = await ExamService.submitExamAttempt(
+                examId!,
+                startTime.toISOString(), 
+                endTime.toISOString(), 
+                answersList
+            );
+
+            setExamAttempt(result || null);
+            setIsExamSubmitted(true);
+            
+            console.log('Exam submitted successfully');
+            console.log('Exam Attempt:', result);
+            console.log('Results saved:', authenticated); // Will be saved if user is authenticated
+
+        } catch (err) {
+            console.error('Error submitting exam:', err);
+            setError('Failed to submit exam. Please try again.');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const getQuestionStatus = (questionId: string) => {
@@ -325,21 +389,167 @@ export default function AttemptView() {
     }
 
     if (isExamSubmitted) {
+        const scorePercentage = ((examAttempt?.numberCorrect || 0) / (exam.questions?.length || 1)) * 100;
+        const questionResults = getQuestionResults();
+        
         return (
             <div className="exam-submitted-container">
                 <div className="exam-submitted-card">
                     <Icon icon="vaadin:check-circle" className="exam-submitted-icon"></Icon>
-                    <h2 className="exam-submitted-title">Exam Submitted!</h2>
-                    <p className="exam-submitted-text">
-                        {`Your exam "${exam.title}" has been successfully submitted.`}
-                        {`Score: ${((examAttempt?.numberCorrect || 0) / (exam.questions?.length || 0)) * 100}%`}
-                    </p>
-                    <button
-                        onClick={() => window.location.reload()}
-                        className="exam-submitted-button"
-                    >
-                        Return to Dashboard
-                    </button>
+                    <h2 className="exam-submitted-title">Exam Complete!</h2>
+                    
+                    <div className="exam-results">
+                        <h3 className="exam-title-result">{exam.title}</h3>
+                        
+                        {/* Score Summary */}
+                        <div className="score-summary">
+                            <div className="score-display">
+                                <div className="score-number">
+                                    {examAttempt?.numberCorrect || 0} / {exam.questions?.length || 0}
+                                </div>
+                                <div className="score-percentage">
+                                    {Math.round(scorePercentage)}%
+                                </div>
+                            </div>
+                            
+                            <div className="score-breakdown">
+                                <div className="breakdown-item correct">
+                                    <Icon icon="vaadin:check" className="breakdown-icon" />
+                                    <span>{examAttempt?.numberCorrect || 0} Correct</span>
+                                </div>
+                                <div className="breakdown-item incorrect">
+                                    <Icon icon="vaadin:close" className="breakdown-icon" />
+                                    <span>{(exam.questions?.length || 0) - (examAttempt?.numberCorrect || 0)} Incorrect</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Toggle Detailed Results */}
+                        <div className="results-toggle">
+                            <Button
+                                onClick={() => setShowDetailedResults(!showDetailedResults)}
+                                theme="tertiary"
+                                className="toggle-details-btn"
+                            >
+                                <Icon 
+                                    icon={showDetailedResults ? "vaadin:chevron-up" : "vaadin:chevron-down"} 
+                                    className="toggle-icon"
+                                />
+                                {showDetailedResults ? 'Hide' : 'Show'} Question Details
+                            </Button>
+                        </div>
+
+                        {/* Detailed Results */}
+                        {showDetailedResults && (
+                            <div className="detailed-results">
+                                <h4 className="detailed-results-title">Question-by-Question Results</h4>
+                                <div className="questions-results-list">
+                                    {exam.questions?.map((question, index) => {
+                                        const questionResult = questionResults.find(r => r.questionId === question?.id);
+                                        const userAnswer = questionResult?.userAnswer || [];
+                                        const correctAnswer = questionResult?.correctAnswer || [];
+                                        const isCorrect = questionResult?.isCorrect || false;
+                                        
+                                        return (
+                                            <div key={question?.id || index} className={`question-result ${isCorrect ? 'correct' : 'incorrect'}`}>
+                                                <div className="question-result-header">
+                                                    <div className="question-number">
+                                                        Question {index + 1}
+                                                    </div>
+                                                    <div className={`result-indicator ${isCorrect ? 'correct' : 'incorrect'}`}>
+                                                        <Icon 
+                                                            icon={isCorrect ? "vaadin:check-circle" : "vaadin:close-circle"} 
+                                                            className="result-icon"
+                                                        />
+                                                        <span>{isCorrect ? 'Correct' : 'Incorrect'}</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="question-text-result">
+                                                    {question?.questionText}
+                                                </div>
+                                                
+                                                {/* Show explanation if available */}
+                                                {question?.explanation && (
+                                                    <div className="question-explanation">
+                                                        <strong>Explanation:</strong>
+                                                        <p>{question.explanation}</p>
+                                                    </div>
+                                                )}
+                                                
+                                                <div className="answers-comparison">
+                                                    <div className="user-answer">
+                                                        <strong>Your Answer:</strong>
+                                                        <div className="answer-choices">
+                                                            {userAnswer.length > 0 ? (
+                                                                userAnswer.map((answer, i) => (
+                                                                    <span key={i} className={`answer-choice ${isCorrect ? 'correct' : 'incorrect'}`}>
+                                                                        {answer}
+                                                                    </span>
+                                                                ))
+                                                            ) : (
+                                                                <span className="no-answer">No answer provided</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {!isCorrect && correctAnswer.length > 0 && (
+                                                        <div className="correct-answer">
+                                                            <strong>Correct Answer:</strong>
+                                                            <div className="answer-choices">
+                                                                {correctAnswer.map((answer, i) => (
+                                                                    <span key={i} className="answer-choice correct">
+                                                                        {answer}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Authentication Status */}
+                        {authenticated && (
+                            <p className="save-status success">
+                                ✓ Results saved to your account
+                            </p>
+                        )}
+                        
+                        {!authenticated && (
+                            <div className="sign-in-prompt">
+                                <p className="prompt-text">
+                                    Want to track your progress and save your results?
+                                </p>
+                                <Button 
+                                    onClick={() => navigate('/login')}
+                                    theme="primary"
+                                >
+                                    Sign In with Google
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="result-actions">
+                        <Button
+                            onClick={() => navigate('/exams')}
+                            theme="secondary"
+                        >
+                            Browse More Exams
+                        </Button>
+                        <Button
+                            onClick={() => window.location.reload()}
+                            theme="primary"
+                        >
+                            Retake Exam
+                        </Button>
+                    </div>
                 </div>
             </div>
         );
@@ -381,14 +591,34 @@ export default function AttemptView() {
                         <div>
                             <h1 className="exam-title">{exam.title}</h1>
                             <p className="exam-description">{exam.description}</p>
+                            {!authenticated && (
+                                <div className="auth-status">
+                                    <Icon icon="vaadin:info-circle" />
+                                    <span>Taking as anonymous user. </span>
+                                    <button 
+                                        onClick={() => navigate('/login')}
+                                        className="inline-link"
+                                    >
+                                        Sign in
+                                    </button>
+                                    <span> to save results.</span>
+                                </div>
+                            )}
+                            {authenticated && (
+                                <div className="auth-status authenticated">
+                                    <Icon icon="vaadin:check-circle" />
+                                    <span>Signed in as {user?.name} - results will be saved</span>
+                                </div>
+                            )}
                         </div>
                         <div className="exam-header-controls">
                             <button
                                 onClick={() => setShowConfirmDialog(true)}
                                 className="submit-button"
+                                disabled={submitting}
                             >
                                 <Icon icon="vaadin:upload" className="submit-icon"></Icon>
-                                <span>Submit Exam</span>
+                                <span>{submitting ? 'Submitting...' : 'Submit Exam'}</span>
                             </button>
                         </div>
                     </div>
@@ -509,6 +739,48 @@ export default function AttemptView() {
                 </div>
             </div>
 
+            {/* Save Option Dialog for Anonymous Users */}
+            {showSaveOption && !authenticated && (
+                <div className="dialog-overlay">
+                    <div className="dialog-content">
+                        <div className="dialog-header">
+                            <Icon icon="vaadin:question-circle" className="dialog-info-icon"></Icon>
+                            <h3 className="dialog-title">Ready to Submit?</h3>
+                        </div>
+                        <p className="dialog-text">
+                            You can complete this exam as an anonymous user, or sign in to save your results and track your progress.
+                        </p>
+                        <div className="dialog-actions">
+                            <Button 
+                                onClick={handleSignInToSave}
+                                theme="primary"
+                                className="dialog-button-primary"
+                            >
+                                Sign In and Save Results
+                            </Button>
+                            <Button 
+                                onClick={() => {
+                                    setSaveAttempt(false);
+                                    setShowSaveOption(false);
+                                    handleSubmitExam();
+                                }}
+                                theme="secondary"
+                                className="dialog-button-secondary"
+                            >
+                                Continue Anonymously
+                            </Button>
+                            <Button 
+                                onClick={() => setShowSaveOption(false)}
+                                theme="tertiary"
+                                className="dialog-button-tertiary"
+                            >
+                                Back to Exam
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Confirmation Dialog */}
             {showConfirmDialog && (
                 <div className="dialog-overlay">
@@ -523,6 +795,16 @@ export default function AttemptView() {
                         <p className="dialog-subtext">
                             You have answered {getAnsweredCount()} out of {exam.questions.length} questions.
                         </p>
+                        {authenticated && (
+                            <p className="dialog-subtext">
+                                Your results will be saved to your account.
+                            </p>
+                        )}
+                        {!authenticated && (
+                            <p className="dialog-subtext">
+                                Results will not be saved. Sign in to track your progress.
+                            </p>
+                        )}
                         <div className="dialog-actions">
                             <button
                                 onClick={() => setShowConfirmDialog(false)}
@@ -533,8 +815,9 @@ export default function AttemptView() {
                             <button
                                 onClick={handleSubmitExam}
                                 className="dialog-button-primary"
+                                disabled={submitting}
                             >
-                                Submit Exam
+                                {submitting ? 'Submitting...' : 'Submit Exam'}
                             </button>
                         </div>
                     </div>

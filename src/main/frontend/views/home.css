@@ -1,130 +1,355 @@
-/* Centered container for all content */
-.home-centered-container {
-  min-height: 67vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding-top: 3.5rem; /* Add more space at the top */
+/* Home View Styles */
+.home-container {
+    min-height: 100vh;
+    background-color: #f9fafb;
+    padding: 2rem;
 }
 
-/* Welcome card styles */
-.welcome-card {
-  text-align: center;
-  height: 7vh;
-  background: linear-gradient(135deg, #f8fafc 60%, #e0e7ff 100%);
-  border-radius: 18px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
-  border: none;
-  margin: 16px auto;
-  padding: 1rem;
-  max-width: 600px;
-}
-.welcome-title {
-  color: #3b3b5c;
-  font-size: 1.3rem;
-  margin: 0;
-  font-weight: bold;
-}
-.welcome-desc {
-  font-size: 1rem;
-  margin: 10px;
-  color: var(--secondary-color, #666); /* fallback if not defined */
+.home-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background-color: #f9fafb;
 }
 
-/* Gallery container and items */
-.gallery {
-  width: 100%;
-  min-height: 13vh;
-  max-height: 18vh;
-  background: none;
-  border-radius: 0;
-  box-shadow: none;
-  border: none;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  justify-content: center;
-  align-items: stretch;
-  gap: 1.2rem;
-  margin: 12px auto;
-  max-width: 900px;
-  padding: 0.75rem 0;
-}
-.gallery-item {
-  flex: 1;
-  min-width: 180px;
-  max-width: 260px;
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 2px 12px rgba(99,102,241,0.07);
-  padding: 0.8rem;
-  margin: 0;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-.gallery-title {
-  color: #3b3b5c;
-  font-size: 1.1rem;
-  margin: 0;
-  font-weight: bold;
-}
-.gallery-desc {
-  font-size: 0.92rem;
-  margin: 0;
-  color: var(--secondary-color, #666);
+.home-loading-content {
+    text-align: center;
+    color: #6b7280;
 }
 
-/* Ultimate Trivia Exam Card */
-.ultimate-trivia-card {
-  max-width: 400px;
-  margin: 40px auto;
-  background: linear-gradient(135deg, #f8fafc 60%, #e0e7ff 100%);
-  border-radius: 18px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
-  padding: 2rem;
-  text-align: center;
-  border: none;
-}
-.ultimate-title {
-  color: #3b3b5c;
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin-bottom: 0.75rem;
-}
-.ultimate-desc {
-  font-size: 1rem;
-  color: var(--secondary-color, #666);
-  margin-bottom: 0.75rem;
-}
-.ultimate-list {
-  text-align: left;
-  margin: 1rem auto;
-  max-width: 320px;
-  color: #444;
-  font-size: 1rem;
-}
-.ultimate-btn {
-  background: linear-gradient(90deg, #6366f1 60%, #818cf8 100%);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 0.75rem 2rem;
-  font-weight: 600;
-  font-size: 1.1rem;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(99,102,241,0.10);
+.home-spinner {
+    width: 2rem;
+    height: 2rem;
+    border: 2px solid #e5e7eb;
+    border-top: 2px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 0.5rem;
 }
 
-/* Button hover animation */
-.btn-hover-animate {
-  transition: background 0.4s cubic-bezier(0.4,0,0.2,1), letter-spacing 0.18s cubic-bezier(0.4,0,0.2,1), box-shadow 0.18s cubic-bezier(0.4,0,0.2,1);
+.home-spinner-small {
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 2px solid #e5e7eb;
+    border-top: 2px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
 }
-.btn-hover-animate:hover, .btn-hover-animate:focus {
-  background: linear-gradient(90deg, #a21caf 0%, #6366f1 100%);
-  letter-spacing: 2px;
-  box-shadow: 0 6px 24px 0 rgba(99,102,241,0.18), 0 1.5px 6px 0 rgba(99,102,241,0.10);
-  outline: none;
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Welcome Card */
+.home-welcome-card {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    animation: slideInUp 0.6s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.home-welcome-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.home-user-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.home-avatar {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+}
+
+.home-welcome-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #1f2937;
+    margin: 0 0 0.25rem 0;
+}
+
+.home-welcome-subtitle {
+    color: #6b7280;
+    margin: 0;
+}
+
+.home-create-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Grid Layout */
+.home-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+}
+
+@media (min-width: 1024px) {
+    .home-grid {
+        grid-template-columns: 1fr 2fr;
+    }
+}
+
+/* Sidebar Styles */
+.home-sidebar {
+    grid-column: span 1;
+}
+
+.home-stats-card {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+}
+
+.home-section-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0 0 1rem 0;
+}
+
+.home-stats-content {
+    margin-bottom: 1.5rem;
+}
+
+.home-stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.home-stat-label {
+    color: #6b7280;
+}
+
+.home-stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+.home-stat-value-blue {
+    color: #3b82f6;
+}
+
+.home-stat-value-green {
+    color: #10b981;
+}
+
+.home-quick-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.home-action-btn {
+    width: 100%;
+}
+
+/* Main Content */
+.home-main-content {
+    grid-column: span 1;
+}
+
+@media (min-width: 1024px) {
+    .home-main-content {
+        grid-column: span 1;
+    }
+}
+
+.home-recent-card {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+}
+
+.home-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.home-loading-state {
+    display: flex;
+    justify-content: center;
+    padding: 2rem 0;
+}
+
+/* Exam Grid */
+.home-exam-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+@media (min-width: 768px) {
+    .home-exam-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.home-exam-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.home-exam-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.home-exam-title {
+    font-weight: 500;
+    color: #1f2937;
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+}
+
+.home-exam-description {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0 0 0.75rem 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.home-exam-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+/* Empty State */
+.home-empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #6b7280;
+}
+
+.home-empty-icon {
+    width: 3rem;
+    height: 3rem;
+    color: #d1d5db;
+    margin: 0 auto 0.75rem;
+    display: block;
+}
+
+/* My Exams Section */
+.home-my-exams-section {
+    margin-top: 2rem;
+}
+
+.home-my-exams-card {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+}
+
+.home-my-exams-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+@media (min-width: 768px) {
+    .home-my-exams-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .home-my-exams-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.home-my-exam-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    transition: all 0.2s ease;
+}
+
+.home-my-exam-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.home-exam-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.75rem;
+}
+
+.home-exam-questions {
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+.home-exam-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .home-container {
+        padding: 1rem;
+    }
+    
+    .home-welcome-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .home-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .home-exam-actions {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .home-exam-buttons {
+        width: 100%;
+        justify-content: flex-end;
+    }
 }

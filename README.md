@@ -2,10 +2,6 @@
 
 ### To Do List
 
-- Modify Result View to display each question with correct answer and explanation
-- Display comments & rating on exam profile
-- Update list view to have more sort/filter criteria
-- Complete User Login/Register View
 - Configure application to use Postgres
 - Develop & document deployment procedures
 - Restyle application

@@ -57,7 +57,6 @@ public class UserService {
         } catch (Exception e) {
             // Log the error but don't throw - this prevents cascade failures
             System.err.println("Error getting authenticated user: " + e.getMessage());
-            e.printStackTrace();
             return null;
         }
     }
@@ -91,7 +90,6 @@ public class UserService {
         } catch (Exception e) {
             // Log the error but don't throw
             System.err.println("Error checking authentication: " + e.getMessage());
-            e.printStackTrace();
             System.out.println("=== DEBUG: isAuthenticated ERROR ===");
             return false;
         }

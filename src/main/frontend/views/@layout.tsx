@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import Font from 'react-font';
 import './layout.css';
 import { AuthProvider, useAuth } from 'Frontend/hooks/useAuth.js';
+import { TagsProvider } from 'Frontend/hooks/useTags';
 
 // Main wrapper with AuthProvider
 export default function MainLayout() {
@@ -16,26 +17,40 @@ export default function MainLayout() {
 
 // Layout content that uses auth
 function LayoutContent() {
-  const { user, logout, authenticated, authInitialized, loading } = useAuth();
+  const { logout, authenticated, authInitialized, loading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
 
-  const navRoutes = [
-    { path: '/home', label: 'HOME' },
-    { path: '/exams', label: 'BROWSE EXAMS' },
-    { path: '/exams/create', label: 'CREATE EXAM' }
-  ];
+  // Define which routes require authentication
+  const protectedRoutes = ['/home', '/profile', '/exams/create'];
+  
+  // Navigation routes - show different options based on auth status
+  const getNavRoutes = () => {
+    const baseRoutes = [
+      { path: '/exams', label: 'BROWSE EXAMS' },
+    ];
+    
+    if (authenticated) {
+      return [
+        { path: '/home', label: 'HOME' },
+        ...baseRoutes,
+        { path: '/exams/create', label: 'CREATE EXAM' }
+      ];
+    }
+    
+    return baseRoutes;
+  };
 
-  // Handle redirects in useEffect to avoid setState during render
+  // Handle redirects for protected routes only
   useEffect(() => {
-    // Only process redirects for truly protected routes (not root transitions)
-    // Give the root index component time to handle its redirect first
     if (authInitialized && !loading && !authenticated) {
+      // Only redirect if on a truly protected route
+      const isProtectedRoute = protectedRoutes.some(route => 
+        currentPath === route || currentPath.startsWith(route + '/')
+      );
       
-      // Only redirect if we're on a protected route that's not root or login
-      if (currentPath !== '/login' && currentPath !== '/' && 
-          (currentPath.startsWith('/home') || currentPath.startsWith('/exams'))) {
+      if (isProtectedRoute && currentPath !== '/login') {
         console.log('Layout: Unauthenticated user on protected route, redirecting to login');
         sessionStorage.setItem('redirectPath', currentPath);
         navigate('/login', { replace: true });
@@ -49,28 +64,22 @@ function LayoutContent() {
     return <Outlet />;
   }
 
-  // Show loading while checking auth
+  // Show loading while checking auth (only for protected routes)
   if (!authInitialized || loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading...</p>
-        </div>
-      </div>
+    const isProtectedRoute = protectedRoutes.some(route => 
+      currentPath === route || currentPath.startsWith(route + '/')
     );
-  }
-
-  // Show redirecting message for unauthenticated users (while redirect is happening)
-  if (!authenticated && currentPath !== '/') {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-yellow-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Redirecting to login...</p>
+    
+    if (isProtectedRoute) {
+      return (
+        <div className="flex items-center justify-center min-h-screen bg-gray-100">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+            <p className="mt-2 text-gray-600">Loading...</p>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
   }
 
   // Let the @index.tsx handle the root path logic
@@ -78,51 +87,16 @@ function LayoutContent() {
     return <Outlet />;
   }
 
-  // Render main layout for authenticated users on non-root paths
+  // Render main layout for all users (authenticated and anonymous)
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">
-          Welcome!
-        </h1>
-
-        {user && (
-          <div className="space-y-4">
-            <div className="flex items-center space-x-4">
-              <img
-                src={user.profilePictureUrl}
-                alt={user.name}
-                className="w-16 h-16 rounded-full"
-                referrerPolicy="no-referrer"
-              />
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {user.name}
-                </h2>
-                <p className="text-sm text-gray-600">{user.email}</p>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t">
-              <Button
-                onClick={() => logout()}
-                theme="primary error"
-                className="w-full"
-              >
-                Sign Out
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-
+    <div className="min-h-screen bg-gray-50">
       <div className="main-layout-root">
         <Font family='Montserrat'>
           <header className="main-header">
             <h1 className="main-title">EXAM VAULT</h1>
             <div className="main-header-controls">
-              <nav style={{ display: 'flex', gap: '1rem' }}>
-                {navRoutes.map(({ path, label }) => (
+              <nav style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                {getNavRoutes().map(({ path, label }) => (
                   <NavLink
                     key={path}
                     to={path}
@@ -164,11 +138,50 @@ function LayoutContent() {
                     {label}
                   </NavLink>
                 ))}
+                
+                {/* Authentication controls - Profile picture removed */}
+                {authenticated ? (
+                  <div className="flex items-center ml-4">
+                    <Button
+                      onClick={() => logout('/')}
+                      theme="tertiary small"
+                      style={{ color: 'white', minHeight: '32px' }}
+                    >
+                      Sign Out
+                    </Button>
+                  </div>
+                ) : (
+                  <NavLink
+                    to="/login"
+                    style={{
+                      textDecoration: 'none',
+                      color: 'white',
+                      fontWeight: 'normal',
+                      padding: '0.25rem .5rem',
+                      borderRadius: '4px',
+                      backgroundColor: 'rgba(255,255,255,0.1)',
+                      marginLeft: '1rem'
+                    }}
+                    className="main-nav-link"
+                    onMouseEnter={e => {
+                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)';
+                      e.currentTarget.style.color = '#ffe066';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
+                      e.currentTarget.style.color = 'white';
+                    }}
+                  >
+                    SIGN IN
+                  </NavLink>
+                )}
               </nav>
             </div>
           </header>
           <main className="main-content">
+            <TagsProvider>
             <Outlet />
+            </TagsProvider>
           </main>
           <footer className="main-footer">
             <p>© 2025 Exam Vault</p>
