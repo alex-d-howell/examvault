@@ -31,6 +31,9 @@ export default function CreateView() {
   const [explanation, setExplanation] = useState<string>(''); // New explanation field
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitMessage, setSubmitMessage] = useState<SubmitMessage | null>(null);
+  
+  // Enhanced submission state tracking
+  const [submissionStage, setSubmissionStage] = useState<'idle' | 'saving' | 'success' | 'navigating'>('idle');
 
   // Editing states
   const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
@@ -43,7 +46,6 @@ export default function CreateView() {
   // Check authentication and redirect if necessary
   useEffect(() => {
     if (authInitialized && !loading && !authenticated) {
-      console.log('User not authenticated, redirecting to login');
       sessionStorage.setItem('redirectPath', '/exams/create');
       navigate('/login');
     }
@@ -226,17 +228,15 @@ export default function CreateView() {
     }
   };
 
-  // Submit exam to backend
+  // Enhanced submit exam function with smooth transitions
   const submitExam = async (): Promise<void> => {
     if (!isExamValid || !authenticated) return;
 
     setIsSubmitting(true);
+    setSubmissionStage('saving');
     setSubmitMessage(null);
 
     try {
-      console.log('Submitting exam:', exam);
-      console.log('User authenticated:', authenticated);
-      console.log('User details:', user);
 
       // Validate exam data before sending
       if (!exam.title?.trim()) {
@@ -263,46 +263,68 @@ export default function CreateView() {
         }
       }
 
-      await ExamService.saveExam(exam);
+      // Save the exam with enhanced user feedback
+      ExamService.saveExam(exam).then((createdExam) => {
+        setSubmissionStage('success');
+        setSubmitMessage({
+          type: 'success',
+          text: 'Exam created successfully! Opening your new exam...'
+        });
 
-      setSubmitMessage({
-        type: 'success',
-        text: 'Exam created successfully! You can now view it in the exam browser.'
+        // Quick transition to keep things feeling snappy
+        setTimeout(() => {
+          setSubmissionStage('navigating');
+          
+          // Navigate after a brief moment to show the navigating state
+          setTimeout(() => {
+            if (createdExam && createdExam.id) {
+              navigate(`/exams/${createdExam.id}`);
+            } else {
+              console.warn('Created exam ID not available, redirecting to exams list');
+              navigate('/exams');
+            }
+          }, 200);
+        }, 400);
+        
+      }).catch((error: any) => {
+        setSubmissionStage('idle');
+        console.error('Error creating exam:', error);
+
+        let errorMessage = 'Failed to create exam. Please try again.';
+
+        if (error.message) {
+          if (error.message.includes('Authentication required')) {
+            errorMessage = 'Authentication error. Please sign out and sign back in.';
+            setSubmitMessage({ type: 'warning', text: errorMessage });
+            setTimeout(() => {
+              navigate('/login');
+            }, 2000);
+            return;
+          } else if (error.message.includes('required') || error.message.includes('must have')) {
+            errorMessage = error.message;
+          } else {
+            errorMessage = `Error: ${error.message}`;
+          }
+        }
+
+        setSubmitMessage({
+          type: 'error',
+          text: errorMessage
+        });
+      }).finally(() => {
+        // Only reset if we're not navigating away
+        if (submissionStage !== 'navigating') {
+          setIsSubmitting(false);
+        }
       });
-
-      // Reset form after a short delay
-      setTimeout(() => {
-        setExam({ title: '', description: '', questions: [], tags: [] });
-        resetQuestionForm();
-        setSubmitMessage(null);
-      }, 3000);
 
     } catch (error: any) {
-      console.error('Error creating exam:', error);
-
-      let errorMessage = 'Failed to create exam. Please try again.';
-
-      if (error.message) {
-        if (error.message.includes('Authentication required')) {
-          errorMessage = 'Authentication error. Please sign out and sign back in.';
-          setSubmitMessage({ type: 'warning', text: errorMessage });
-          // Optionally redirect to login
-          setTimeout(() => {
-            navigate('/login');
-          }, 2000);
-          return;
-        } else if (error.message.includes('required') || error.message.includes('must have')) {
-          errorMessage = error.message;
-        } else {
-          errorMessage = `Error: ${error.message}`;
-        }
-      }
-
+      setSubmissionStage('idle');
+      console.error('Error validating exam:', error);
       setSubmitMessage({
         type: 'error',
-        text: errorMessage
+        text: error.message || 'Failed to create exam. Please try again.'
       });
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -576,14 +598,24 @@ export default function CreateView() {
 
         <button
           onClick={submitExam}
-          disabled={!isExamValid || isEditMode}
-          className={`btn-submit ${(isExamValid && !isEditMode) ? 'enabled' : 'disabled'}`}
+          disabled={!isExamValid || isEditMode || submissionStage !== 'idle'}
+          className={`btn-submit ${(isExamValid && !isEditMode && submissionStage !== 'navigating') ? 'enabled' : 'disabled'}`}
           type="button"
         >
-          {isSubmitting ? (
+          {submissionStage === 'saving' ? (
             <>
               <div className="spinner"></div>
               Creating Exam...
+            </>
+          ) : submissionStage === 'success' ? (
+            <>
+              <Icon className='submit-check success-pulse' icon="vaadin:check" />
+              Exam Created!
+            </>
+          ) : submissionStage === 'navigating' ? (
+            <>
+              <Icon className='submit-check navigate-bounce' icon="vaadin:arrow-right" />
+              Opening Exam...
             </>
           ) : (
             <>

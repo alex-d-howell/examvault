@@ -1,0 +1,18 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15
+    container_name: examvault-postgres
+    environment:
+      POSTGRES_DB: examvault
+      POSTGRES_USER: examvault_user
+      POSTGRES_PASSWORD: examvault_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - examvault_postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+
+volumes:
+  examvault_postgres_data:

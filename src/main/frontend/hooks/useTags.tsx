@@ -8,9 +8,6 @@ interface TagsContextType {
     error: Error | null;
     addTag: (newTag: string) => void;
     refreshTags: () => Promise<void>;
-    
-    // Enhanced tag management functionality
-    useTagInput: () => TagInputHook;
 }
 
 interface TagsProviderProps {
@@ -28,12 +25,8 @@ interface TagInputHook {
     
     // Tag management for a specific exam/entity
     selectedTags: string[];
-    setSelectedTags: (tags: string[]) => void;
     
     // Helper functions
-    addTagToSelection: (tag: string) => void;
-    removeTagFromSelection: (tag: string) => void;
-    handleTagInputKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
     handleTagInputFocus: () => void;
     handleTagInputBlur: () => void;
     clearTagInput: () => void;
@@ -61,7 +54,6 @@ export function TagsProvider({ children }: TagsProviderProps) {
                 // Filter out any undefined values and ensure we have string[]
                 const validTags = (fetchedTags || []).filter((tag): tag is string => tag != null && tag !== undefined);
                 setTags(validTags);
-                console.log('Tags loaded globally:', validTags?.length || 0, 'tags');
             } catch (err) {
                 console.error('Error loading tags:', err);
                 setError(err instanceof Error ? err : new Error('Unknown error occurred'));
@@ -97,124 +89,12 @@ export function TagsProvider({ children }: TagsProviderProps) {
         }
     };
 
-    // Enhanced tag input hook
-    const useTagInput = (): TagInputHook => {
-        const [tagInput, setTagInput] = useState<string>('');
-        const [showTagSuggestions, setShowTagSuggestions] = useState<boolean>(false);
-        const [filteredTags, setFilteredTags] = useState<string[]>([]);
-        const [selectedTags, setSelectedTags] = useState<string[]>([]);
-
-        // Filter tags based on input and selection
-        useEffect(() => {
-            if (tagInput.length > 0) {
-                const filtered = tags.filter(tag => 
-                    tag.toLowerCase().includes(tagInput.toLowerCase()) &&
-                    !selectedTags.includes(tag)
-                );
-                setFilteredTags(filtered);
-                setShowTagSuggestions(filtered.length > 0);
-            } else {
-                setShowTagSuggestions(false);
-                setFilteredTags([]);
-            }
-        }, [tagInput, selectedTags]);
-
-        // Tag validation
-        const isValidTag = (tag: string): boolean => {
-            const trimmed = tag.trim();
-            return trimmed.length > 0 && 
-                   trimmed.length <= 50 && 
-                   trimmed.match(/^[a-zA-Z0-9\s\-_]+$/) !== null;
-        };
-
-        const getTagValidationError = (tag: string): string | null => {
-            const trimmed = tag.trim();
-            if (!trimmed) return 'Tag cannot be empty';
-            if (trimmed.length > 50) return 'Tag cannot exceed 50 characters';
-            if (!trimmed.match(/^[a-zA-Z0-9\s\-_]+$/)) {
-                return 'Tag can only contain letters, numbers, spaces, hyphens, and underscores';
-            }
-            if (selectedTags.includes(trimmed)) return 'Tag already added';
-            return null;
-        };
-
-        // Add tag to selection
-        const addTagToSelection = (tag: string): void => {
-            const trimmed = tag.trim();
-            if (isValidTag(trimmed) && !selectedTags.includes(trimmed)) {
-                setSelectedTags(prev => [...prev, trimmed]);
-                
-                // Add to global cache if it's a new tag
-                if (!tags.includes(trimmed)) {
-                    addTag(trimmed);
-                }
-                
-                setTagInput('');
-                setShowTagSuggestions(false);
-            }
-        };
-
-        // Remove tag from selection
-        const removeTagFromSelection = (tagToRemove: string): void => {
-            setSelectedTags(prev => prev.filter(tag => tag !== tagToRemove));
-        };
-
-        // Handle keyboard events
-        const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                if (tagInput.trim()) {
-                    addTagToSelection(tagInput.trim());
-                }
-            } else if (e.key === 'Escape') {
-                setShowTagSuggestions(false);
-            }
-        };
-
-        // Handle focus
-        const handleTagInputFocus = (): void => {
-            if (filteredTags.length > 0) {
-                setShowTagSuggestions(true);
-            }
-        };
-
-        // Handle blur with delay to allow clicking suggestions
-        const handleTagInputBlur = (): void => {
-            setTimeout(() => setShowTagSuggestions(false), 200);
-        };
-
-        // Clear input
-        const clearTagInput = (): void => {
-            setTagInput('');
-            setShowTagSuggestions(false);
-        };
-
-        return {
-            tagInput,
-            setTagInput,
-            showTagSuggestions,
-            setShowTagSuggestions,
-            filteredTags,
-            selectedTags,
-            setSelectedTags,
-            addTagToSelection,
-            removeTagFromSelection,
-            handleTagInputKeyDown,
-            handleTagInputFocus,
-            handleTagInputBlur,
-            clearTagInput,
-            isValidTag,
-            getTagValidationError
-        };
-    };
-
     const value: TagsContextType = {
         tags,
         loading,
         error,
         addTag,
-        refreshTags,
-        useTagInput
+        refreshTags
     };
 
     return (
@@ -231,4 +111,79 @@ export function useTags(): TagsContextType {
         throw new Error('useTags must be used within a TagsProvider');
     }
     return context;
+}
+
+// FIXED: Move useTagInput outside as a proper custom hook
+export function useTagInput(selectedTags: string[] = []): TagInputHook {
+    const { tags } = useTags(); // Get tags from context
+    
+    const [tagInput, setTagInput] = useState<string>('');
+    const [showTagSuggestions, setShowTagSuggestions] = useState<boolean>(false);
+    const [filteredTags, setFilteredTags] = useState<string[]>([]);
+
+    // Filter tags based on input and selection
+    useEffect(() => {
+        if (tagInput.length > 0) {
+            const filtered = tags.filter(tag => 
+                tag.toLowerCase().includes(tagInput.toLowerCase()) &&
+                !selectedTags.includes(tag)
+            );
+            setFilteredTags(filtered);
+            setShowTagSuggestions(filtered.length > 0);
+        } else {
+            setShowTagSuggestions(false);
+            setFilteredTags([]);
+        }
+    }, [tagInput, selectedTags, tags]);
+
+    // Tag validation
+    const isValidTag = (tag: string): boolean => {
+        const trimmed = tag.trim();
+        return trimmed.length > 0 && 
+               trimmed.length <= 50 && 
+               trimmed.match(/^[a-zA-Z0-9\s\-_]+$/) !== null;
+    };
+
+    const getTagValidationError = (tag: string): string | null => {
+        const trimmed = tag.trim();
+        if (!trimmed) return 'Tag cannot be empty';
+        if (trimmed.length > 50) return 'Tag cannot exceed 50 characters';
+        if (!trimmed.match(/^[a-zA-Z0-9\s\-_]+$/)) {
+            return 'Tag can only contain letters, numbers, spaces, hyphens, and underscores';
+        }
+        if (selectedTags.includes(trimmed)) return 'Tag already added';
+        return null;
+    };
+
+    // Handle focus
+    const handleTagInputFocus = (): void => {
+        if (filteredTags.length > 0) {
+            setShowTagSuggestions(true);
+        }
+    };
+
+    // Handle blur with delay to allow clicking suggestions
+    const handleTagInputBlur = (): void => {
+        setTimeout(() => setShowTagSuggestions(false), 200);
+    };
+
+    // Clear input
+    const clearTagInput = (): void => {
+        setTagInput('');
+        setShowTagSuggestions(false);
+    };
+
+    return {
+        tagInput,
+        setTagInput,
+        showTagSuggestions,
+        setShowTagSuggestions,
+        filteredTags,
+        selectedTags, // Just return what was passed in
+        handleTagInputFocus,
+        handleTagInputBlur,
+        clearTagInput,
+        isValidTag,
+        getTagValidationError
+    };
 }

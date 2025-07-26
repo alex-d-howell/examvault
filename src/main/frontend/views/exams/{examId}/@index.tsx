@@ -36,7 +36,6 @@ export default function ProfileView() {
 
     useEffect(() => {
         const fetchExamAndPermissions = async () => {
-            console.log('Exam ID from params:', examId);
             if (!examId) {
                 setError('No exam ID provided');
                 setLoading(false);
@@ -48,16 +47,11 @@ export default function ProfileView() {
                 setLoading(true);
                 setError(null);
 
-                console.log('Fetching exam with ID:', examId);
-
                 // Fetch the exam and comments
                 const [fetchedExam, fetchedComments] = await Promise.all([
                     ExamService.getExamById(examId),
                     CommentService.getExamComments(examId)
                 ]);
-
-                console.log('Fetched Exam:', fetchedExam);
-                console.log('Fetched Comments:', fetchedComments);
 
                 if (fetchedExam) {
                     setExam(fetchedExam);
@@ -69,7 +63,6 @@ export default function ProfileView() {
                         try {
                             const canModify = await ExamService.canUserModifyExam(examId);
                             setCanEdit(canModify);
-                            console.log('User can edit exam:', canModify);
                         } catch (permError) {
                             console.error('Error checking edit permissions:', permError);
                             setCanEdit(false);
@@ -126,11 +119,6 @@ export default function ProfileView() {
         size?: 'small' | 'medium' | 'large';
     }) => {
         const sizeClass = size === 'small' ? 'star-small' : size === 'large' ? 'star-large' : 'star-medium';
-        
-        // Debug logging for StarRating
-        if (disabled) {
-            console.log('StarRating disabled component:', { rating, disabled, shouldRender: rating && rating > 0 });
-        }
         
         // Don't render anything if rating is 0, null, or undefined and this is a disabled (display-only) component
         if (disabled && (!rating || rating <= 0)) {
@@ -189,8 +177,6 @@ export default function ProfileView() {
                 commentRating ?? undefined
             );
 
-            console.log('New comment created:', newComment);
-
             // Add the new comment to the list if it has an ID, otherwise refresh the whole list
             if (newComment && newComment.id) {
                 setComments(prev => [...prev, newComment]);
@@ -220,8 +206,6 @@ export default function ProfileView() {
     // Start editing a comment
     const startEditingComment = (comment: Comment) => {
         const commentIdStr = comment.id ? comment.id.toString() : '';
-        console.log('Starting edit for comment:', comment.id, 'converted to:', commentIdStr);
-        console.log('Comment examRating:', comment.examRating, 'type:', typeof comment.examRating);
         
         if (!commentIdStr) {
             console.error('Cannot edit comment: missing ID', comment);
@@ -232,7 +216,6 @@ export default function ProfileView() {
         setEditCommentText(comment.commentString || '');
         // Only set rating if it's > 0, otherwise leave as null
         const ratingToEdit = (comment.examRating && comment.examRating > 0) ? comment.examRating : null;
-        console.log('Setting edit rating to:', ratingToEdit);
         setEditCommentRating(ratingToEdit);
     };
 
@@ -253,8 +236,6 @@ export default function ProfileView() {
             console.error('Missing examId or commentId:', { examId, commentId });
             return;
         }
-
-        console.log('Updating comment:', { examId, commentId, text: editCommentText, rating: editCommentRating });
 
         try {
             const updatedComment = await CommentService.updateComment(
@@ -286,8 +267,6 @@ export default function ProfileView() {
             console.error('Missing examId or commentId:', { examId, commentId });
             return;
         }
-
-        console.log('Deleting comment:', { examId, commentId });
 
         try {
             await CommentService.deleteComment(examId, commentId);
@@ -647,17 +626,6 @@ export default function ProfileView() {
                                 // More robust rating check - must be a number > 0
                                 const hasRating = typeof comment.examRating === 'number' && comment.examRating > 0;
                                 const canEditThisComment = canUserEditComment(comment) && commentIdStr;
-                                
-                                // Debug logging for rating issues
-                                if (comment.examRating !== undefined && comment.examRating !== null) {
-                                    console.log('Comment rating debug:', { 
-                                        commentId: comment.id,
-                                        examRating: comment.examRating, 
-                                        typeOf: typeof comment.examRating,
-                                        hasRating,
-                                        isGreaterThanZero: comment.examRating > 0
-                                    });
-                                }
                                 
                                 return (
                                 <div key={commentIdStr || `comment-${index}`} className="comment-item">

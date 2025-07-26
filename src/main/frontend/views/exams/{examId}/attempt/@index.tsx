@@ -26,7 +26,7 @@ export default function AttemptView() {
     const { examId } = useParams<{ examId: string }>();
     const { authenticated, user } = useAuth();
     const navigate = useNavigate();
-    
+
     const [exam, setExam] = useState<Exam | null>(null);
     const [examAttempt, setExamAttempt] = useState<ExamAttempt | null>(null);
     const [loading, setLoading] = useState(true);
@@ -53,7 +53,7 @@ export default function AttemptView() {
         if (!examAttempt?.selectedAnswers || !exam?.questions) {
             return [];
         }
-        
+
         // Create a map of user answers by questionId
         const userAnswersMap = new Map<string, string[]>();
         examAttempt.selectedAnswers.forEach((answer) => {
@@ -63,18 +63,18 @@ export default function AttemptView() {
                 userAnswersMap.set(answer.questionId, cleanAnswerChoices);
             }
         });
-        
+
         // Build question results by comparing user answers with correct answers
         return exam.questions.map((question) => {
             if (!question?.id) return null;
-            
+
             const userAnswer = userAnswersMap.get(question.id) || [];
             const correctAnswer = (question.correctAnswers || []).filter((answer): answer is string => answer !== undefined);
-            
+
             // Check if answer is correct (same length and contains all correct answers)
-            const isCorrect = userAnswer.length === correctAnswer.length && 
-                             correctAnswer.every(correct => userAnswer.includes(correct));
-            
+            const isCorrect = userAnswer.length === correctAnswer.length &&
+                correctAnswer.every(correct => userAnswer.includes(correct));
+
             return {
                 questionId: question.id,
                 userAnswer,
@@ -95,7 +95,6 @@ export default function AttemptView() {
             if (hasUnsavedChanges()) {
                 const message = 'You have unsaved changes. Are you sure you want to leave?';
                 event.preventDefault();
-                event.returnValue = message; // For older browsers
                 return message;
             }
             return undefined; // Explicitly return undefined when no unsaved changes
@@ -130,7 +129,7 @@ export default function AttemptView() {
         const handleLinkClick = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
             const link = target.closest('a');
-            
+
             if (link && hasUnsavedChanges() && !isNavigating) {
                 event.preventDefault();
                 event.stopPropagation();
@@ -151,7 +150,7 @@ export default function AttemptView() {
     // Handle confirmed navigation
     const handleConfirmLeave = () => {
         setShowLeaveDialog(false);
-        
+
         if (pendingNavigation) {
             // Navigate to the clicked link
             window.location.href = pendingNavigation;
@@ -159,7 +158,7 @@ export default function AttemptView() {
             // Handle back navigation
             window.history.back();
         }
-        
+
         setPendingNavigation(null);
     };
 
@@ -171,7 +170,6 @@ export default function AttemptView() {
 
     useEffect(() => {
         const fetchExam = async () => {
-            console.log('Exam ID from params:', examId);
             if (!examId) {
                 setError('No exam ID provided');
                 setLoading(false);
@@ -182,11 +180,8 @@ export default function AttemptView() {
                 setLoading(true);
                 setError(null);
 
-                console.log('Fetching exam with ID:', examId);
-
                 // Fetch the exam using the ExamService
                 const fetchedExam = await ExamService.getExamById(examId);
-                console.log('Fetched Exam:', fetchedExam);
 
                 if (fetchedExam && fetchedExam.questions) {
                     // Create a new exam object with shuffled questions and options
@@ -295,9 +290,6 @@ export default function AttemptView() {
         setShowSaveOption(false);
 
         try {
-            console.log('Raw answers:', answers);
-            console.log('Save attempt preference:', saveAttempt);
-            console.log('User authenticated:', authenticated);
 
             // Convert answers to the format expected by the backend
             const answersList = Object.entries(answers)
@@ -309,24 +301,18 @@ export default function AttemptView() {
                     };
                 }) as Answer[];
 
-            console.log('Formatted answers for submission:', answersList);
-
             const endTime = new Date();
 
             // Use the simpler 4-parameter method - backend will handle save logic internally
             const result = await ExamService.submitExamAttempt(
                 examId!,
-                startTime.toISOString(), 
-                endTime.toISOString(), 
+                startTime.toISOString(),
+                endTime.toISOString(),
                 answersList
             );
 
             setExamAttempt(result || null);
             setIsExamSubmitted(true);
-            
-            console.log('Exam submitted successfully');
-            console.log('Exam Attempt:', result);
-            console.log('Results saved:', authenticated); // Will be saved if user is authenticated
 
         } catch (err) {
             console.error('Error submitting exam:', err);
@@ -391,16 +377,16 @@ export default function AttemptView() {
     if (isExamSubmitted) {
         const scorePercentage = ((examAttempt?.numberCorrect || 0) / (exam.questions?.length || 1)) * 100;
         const questionResults = getQuestionResults();
-        
+
         return (
             <div className="exam-submitted-container">
                 <div className="exam-submitted-card">
                     <Icon icon="vaadin:check-circle" className="exam-submitted-icon"></Icon>
                     <h2 className="exam-submitted-title">Exam Complete!</h2>
-                    
+
                     <div className="exam-results">
                         <h3 className="exam-title-result">{exam.title}</h3>
-                        
+
                         {/* Score Summary */}
                         <div className="score-summary">
                             <div className="score-display">
@@ -411,7 +397,7 @@ export default function AttemptView() {
                                     {Math.round(scorePercentage)}%
                                 </div>
                             </div>
-                            
+
                             <div className="score-breakdown">
                                 <div className="breakdown-item correct">
                                     <Icon icon="vaadin:check" className="breakdown-icon" />
@@ -431,8 +417,8 @@ export default function AttemptView() {
                                 theme="tertiary"
                                 className="toggle-details-btn"
                             >
-                                <Icon 
-                                    icon={showDetailedResults ? "vaadin:chevron-up" : "vaadin:chevron-down"} 
+                                <Icon
+                                    icon={showDetailedResults ? "vaadin:chevron-up" : "vaadin:chevron-down"}
                                     className="toggle-icon"
                                 />
                                 {showDetailedResults ? 'Hide' : 'Show'} Question Details
@@ -449,7 +435,7 @@ export default function AttemptView() {
                                         const userAnswer = questionResult?.userAnswer || [];
                                         const correctAnswer = questionResult?.correctAnswer || [];
                                         const isCorrect = questionResult?.isCorrect || false;
-                                        
+
                                         return (
                                             <div key={question?.id || index} className={`question-result ${isCorrect ? 'correct' : 'incorrect'}`}>
                                                 <div className="question-result-header">
@@ -457,18 +443,18 @@ export default function AttemptView() {
                                                         Question {index + 1}
                                                     </div>
                                                     <div className={`result-indicator ${isCorrect ? 'correct' : 'incorrect'}`}>
-                                                        <Icon 
-                                                            icon={isCorrect ? "vaadin:check-circle" : "vaadin:close-circle"} 
+                                                        <Icon
+                                                            icon={isCorrect ? "vaadin:check-circle" : "vaadin:close-circle"}
                                                             className="result-icon"
                                                         />
                                                         <span>{isCorrect ? 'Correct' : 'Incorrect'}</span>
                                                     </div>
                                                 </div>
-                                                
+
                                                 <div className="question-text-result">
                                                     {question?.questionText}
                                                 </div>
-                                                
+
                                                 {/* Show explanation if available */}
                                                 {question?.explanation && (
                                                     <div className="question-explanation">
@@ -476,7 +462,7 @@ export default function AttemptView() {
                                                         <p>{question.explanation}</p>
                                                     </div>
                                                 )}
-                                                
+
                                                 <div className="answers-comparison">
                                                     <div className="user-answer">
                                                         <strong>Your Answer:</strong>
@@ -492,7 +478,7 @@ export default function AttemptView() {
                                                             )}
                                                         </div>
                                                     </div>
-                                                    
+
                                                     {!isCorrect && correctAnswer.length > 0 && (
                                                         <div className="correct-answer">
                                                             <strong>Correct Answer:</strong>
@@ -519,13 +505,13 @@ export default function AttemptView() {
                                 ✓ Results saved to your account
                             </p>
                         )}
-                        
+
                         {!authenticated && (
                             <div className="sign-in-prompt">
                                 <p className="prompt-text">
                                     Want to track your progress and save your results?
                                 </p>
-                                <Button 
+                                <Button
                                     onClick={() => navigate('/login')}
                                     theme="primary"
                                 >
@@ -534,7 +520,7 @@ export default function AttemptView() {
                             </div>
                         )}
                     </div>
-                    
+
                     {/* Action Buttons */}
                     <div className="result-actions">
                         <Button
@@ -595,7 +581,7 @@ export default function AttemptView() {
                                 <div className="auth-status">
                                     <Icon icon="vaadin:info-circle" />
                                     <span>Taking as anonymous user. </span>
-                                    <button 
+                                    <button
                                         onClick={() => navigate('/login')}
                                         className="inline-link"
                                     >
@@ -751,14 +737,14 @@ export default function AttemptView() {
                             You can complete this exam as an anonymous user, or sign in to save your results and track your progress.
                         </p>
                         <div className="dialog-actions">
-                            <Button 
+                            <Button
                                 onClick={handleSignInToSave}
                                 theme="primary"
                                 className="dialog-button-primary"
                             >
                                 Sign In and Save Results
                             </Button>
-                            <Button 
+                            <Button
                                 onClick={() => {
                                     setSaveAttempt(false);
                                     setShowSaveOption(false);
@@ -769,7 +755,7 @@ export default function AttemptView() {
                             >
                                 Continue Anonymously
                             </Button>
-                            <Button 
+                            <Button
                                 onClick={() => setShowSaveOption(false)}
                                 theme="tertiary"
                                 className="dialog-button-tertiary"

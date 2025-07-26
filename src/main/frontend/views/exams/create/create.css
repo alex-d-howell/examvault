@@ -522,3 +522,143 @@
     transform: rotate(360deg);
   }
 }
+
+.message {
+  margin-bottom: 16px;
+  padding: 16px 20px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.message::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 8px 0 0 8px;
+}
+
+.message.success {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  color: #065f46;
+  border: 1px solid #10b981;
+  animation: slideInSuccess 0.4s ease-out;
+}
+
+.message.success::before {
+  background: #10b981;
+}
+
+.message.error {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  color: #991b1b;
+  border: 1px solid #ef4444;
+  animation: slideInError 0.4s ease-out;
+}
+
+.message.error::before {
+  background: #ef4444;
+}
+
+.message.warning {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  color: #92400e;
+  border: 1px solid #f59e0b;
+  animation: slideInWarning 0.4s ease-out;
+}
+
+.message.warning::before {
+  background: #f59e0b;
+}
+
+/* Message icons */
+.message svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* Enhanced animations */
+@keyframes slideInSuccess {
+  from {
+    opacity: 0;
+    transform: translateY(-15px) scale(0.95);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes slideInError {
+  from {
+    opacity: 0;
+    transform: translateX(-15px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes slideInWarning {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Submit section enhancements */
+.submit-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #fafbfc;
+  padding: 2rem;
+  border-radius: 12px;
+  margin-top: 2rem;
+  border: 1px solid #e5e7eb;
+}
+
+/* Progress indicator during submission */
+.btn-submit:not(.disabled) {
+  position: relative;
+}
+
+.btn-submit:not(.disabled)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(45deg, transparent 49%, rgba(255,255,255,0.1) 50%, transparent 51%);
+  background-size: 20px 20px;
+  animation: shimmer 2s infinite;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.btn-submit.enabled:hover::after {
+  opacity: 1;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -20px 0;
+  }
+  100% {
+    background-position: 40px 0;
+  }
+}

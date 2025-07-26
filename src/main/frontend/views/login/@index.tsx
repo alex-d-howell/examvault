@@ -15,8 +15,6 @@ export default function LoginView() {
         if (authInitialized && !loading && authenticated && !hasRedirected.current) {
             hasRedirected.current = true;
             
-            console.log('User authenticated in login, handling redirect...');
-            
             // Check for redirect path in multiple places
             const urlParams = new URLSearchParams(location.search);
             const urlRedirectPath = urlParams.get('redirect');
@@ -25,11 +23,9 @@ export default function LoginView() {
             const redirectPath = urlRedirectPath || sessionRedirectPath;
             
             if (redirectPath && redirectPath !== '/login' && redirectPath !== '/') {
-                console.log('Using redirect path:', redirectPath);
                 sessionStorage.removeItem('redirectPath');
                 navigate(redirectPath, { replace: true });
             } else {
-                console.log('No redirect path found, going to home');
                 navigate('/home', { replace: true });
             }
         }
@@ -37,7 +33,6 @@ export default function LoginView() {
 
     const handleGoogleSignIn = () => {
         setIsSigningIn(true);
-        console.log('Initiating OAuth2 flow...');
         window.location.href = '/oauth2/authorization/google';
     };
 

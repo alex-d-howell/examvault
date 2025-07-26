@@ -13,12 +13,10 @@ export default function RootView() {
     useEffect(() => {
         if (authInitialized && !loading && authenticated && !hasRedirected.current) {
             hasRedirected.current = true;
-            console.log('Authenticated user at root, redirecting to /home');
             
             // Check for stored redirect path first
             const redirectPath = sessionStorage.getItem('redirectPath');
             if (redirectPath && redirectPath !== '/login' && redirectPath !== '/') {
-                console.log('Using stored redirect path:', redirectPath);
                 sessionStorage.removeItem('redirectPath');
                 navigate(redirectPath, { replace: true });
             } else {

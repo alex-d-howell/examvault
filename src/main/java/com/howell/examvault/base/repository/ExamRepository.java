@@ -2,149 +2,222 @@ package com.howell.examvault.base.repository;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.howell.examvault.base.domain.Exam;
 
-public interface ExamRepository extends JpaRepository<Exam, UUID> {
+/**
+ * Production-ready ExamRepository focused on specifications and essential
+ * PostgreSQL queries Leverages JpaSpecificationExecutor for dynamic queries and
+ * native queries for PostgreSQL arrays
+ */
+public interface ExamRepository extends JpaRepository<Exam, UUID>, JpaSpecificationExecutor<Exam> {
 
-    List<Exam> findByTitleContainingIgnoreCaseAndUploadedByContainingIgnoreCase(String title, String uploadedBy);
-    List<Exam> findByUploadedBy(String uploadedBy);
-    
-    // ===== POSTGRESQL-ONLY OPTIMIZED QUERIES =====
-    
+    // ===== BASIC FINDER METHODS =====
     /**
-     * Get all unique tags using PostgreSQL's unnest function
-     * Only works with PostgreSQL - fallback to service layer for other databases
+     * Find exams by author
+     */
+    List<Exam> findByUploadedBy(String uploadedBy);
+
+    /**
+     * Find exams by author with sorting
+     */
+    List<Exam> findByUploadedBy(String uploadedBy, Sort sort);
+
+    // ===== POSTGRESQL ARRAY TAG OPERATIONS =====
+    /**
+     * Get all unique tags - essential for tag suggestions and autocomplete
      */
     @Query(value = "SELECT DISTINCT unnest(tags) as tag FROM exam WHERE tags IS NOT NULL ORDER BY tag", nativeQuery = true)
-    List<String> findAllUniqueTagsPostgreSQL();
-    
+    List<String> findAllUniqueTags();
+
     /**
-     * Find exams by tags using PostgreSQL array overlap operator
-     * Only works with PostgreSQL - fallback to service layer for other databases
-     */
-    @Query(value = "SELECT * FROM exam WHERE tags && CAST(:tags AS text[])", nativeQuery = true)
-    List<Exam> findByTagsInPostgreSQL(@Param("tags") List<String> tags);
-    
-    /**
-     * Combined search with PostgreSQL array operators
-     * Only works with PostgreSQL - fallback to service layer for other databases
-     */
-    @Query(value = """
-        SELECT * FROM exam e 
-        WHERE (:title IS NULL OR :title = '' OR LOWER(e.title) LIKE LOWER(CONCAT('%', :title, '%')))
-        AND (:uploadedBy IS NULL OR :uploadedBy = '' OR LOWER(e.uploaded_by) LIKE LOWER(CONCAT('%', :uploadedBy, '%')))
-        AND e.tags && CAST(:tags AS text[])
-        """, nativeQuery = true)
-    List<Exam> findByTitleAndUploadedByAndTagsPostgreSQL(
-        @Param("title") String title, 
-        @Param("uploadedBy") String uploadedBy, 
-        @Param("tags") List<String> tags);
-    
-    /**
-     * Advanced search with PostgreSQL array operators and additional filters
-     * Only works with PostgreSQL - fallback to service layer for other databases
+     * Find exams by tags using EXISTS subquery - most reliable approach Works
+     * efficiently with PostgreSQL arrays
      */
     @Query(value = """
         SELECT e.* FROM exam e 
-        LEFT JOIN (
-            SELECT exam_id, COUNT(*) as question_count 
-            FROM question 
-            GROUP BY exam_id
-        ) q ON e.id = q.exam_id
-        LEFT JOIN (
-            SELECT exam_id, COUNT(*) as comment_count 
-            FROM comment 
-            GROUP BY exam_id
-        ) c ON e.id = c.exam_id
-        WHERE (:title IS NULL OR :title = '' OR LOWER(e.title) LIKE LOWER(CONCAT('%', :title, '%')))
-        AND (:uploadedBy IS NULL OR :uploadedBy = '' OR LOWER(e.uploaded_by) LIKE LOWER(CONCAT('%', :uploadedBy, '%')))
-        AND (:examStatus IS NULL OR :examStatus = '' OR LOWER(e.exam_status) = LOWER(:examStatus))
-        AND (:startDate IS NULL OR e.uploaded_at >= :startDate)
-        AND (:endDate IS NULL OR e.uploaded_at <= :endDate)
-        AND (:minQuestions IS NULL OR COALESCE(q.question_count, 0) >= :minQuestions)
-        AND (:maxQuestions IS NULL OR COALESCE(q.question_count, 0) <= :maxQuestions)
-        AND (:hasTags = false OR e.tags && CAST(:tags AS text[]))
-        ORDER BY 
-            CASE WHEN :sortBy = 'title' THEN e.title END ASC,
-            CASE WHEN :sortBy = 'date' THEN e.uploaded_at END DESC,
-            CASE WHEN :sortBy = 'questions' THEN q.question_count END DESC,
-            CASE WHEN :sortBy = 'comments' THEN c.comment_count END DESC,
-            e.uploaded_at DESC
+        WHERE EXISTS (
+            SELECT 1 FROM unnest(e.tags) AS exam_tag 
+            WHERE exam_tag IN (:tags)
+        )
+        ORDER BY e.uploaded_at DESC
         """, nativeQuery = true)
-    List<Exam> advancedSearchPostgreSQL(
-        @Param("title") String title,
-        @Param("uploadedBy") String uploadedBy,
-        @Param("examStatus") String examStatus,
-        @Param("startDate") Instant startDate,
-        @Param("endDate") Instant endDate,
-        @Param("minQuestions") Integer minQuestions,
-        @Param("maxQuestions") Integer maxQuestions,
-        @Param("tags") List<String> tags,
-        @Param("hasTags") boolean hasTags,
-        @Param("sortBy") String sortBy
-    );
-    
+    List<Exam> findByTagsExists(@Param("tags") List<String> tags);
+
     /**
-     * Get all unique exam statuses
+     * Find exams by single tag - optimized for single tag searches
      */
-    @Query("SELECT DISTINCT e.examStatus FROM Exam e WHERE e.examStatus IS NOT NULL ORDER BY e.examStatus")
-    List<String> findAllUniqueExamStatuses();
-    
+    @Query(value = "SELECT * FROM exam WHERE :tag = ANY(tags) ORDER BY uploaded_at DESC", nativeQuery = true)
+    List<Exam> findBySingleTag(@Param("tag") String tag);
+
     /**
-     * Get exam statistics for dashboard/filtering
+     * Count exams with specific tags
+     */
+    @Query(value = """
+        SELECT COUNT(DISTINCT e.id) FROM exam e 
+        WHERE EXISTS (
+            SELECT 1 FROM unnest(e.tags) AS exam_tag 
+            WHERE exam_tag IN (:tags)
+        )
+        """, nativeQuery = true)
+    Long countByTags(@Param("tags") List<String> tags);
+
+    /**
+     * Find tags matching a pattern for autocomplete
+     */
+    @Query(value = """
+        SELECT DISTINCT tag 
+        FROM (SELECT unnest(tags) as tag FROM exam WHERE tags IS NOT NULL) t 
+        WHERE tag ILIKE CONCAT('%', :pattern, '%') 
+        ORDER BY tag 
+        LIMIT 20
+        """, nativeQuery = true)
+    List<String> findTagsMatchingPattern(@Param("pattern") String pattern);
+
+    // ===== UTILITY AND ANALYTICS QUERIES =====
+    /**
+     * Get basic exam statistics for dashboard
+     */
+    @Query(value = "SELECT COUNT(*), COUNT(DISTINCT uploaded_by) FROM exam", nativeQuery = true)
+    Object[] getBasicExamStatistics();
+
+    /**
+     * Get popular tags with usage counts
+     */
+    @Query(value = """
+        SELECT tag, COUNT(*) as usage_count 
+        FROM (SELECT unnest(tags) as tag FROM exam WHERE tags IS NOT NULL) t 
+        GROUP BY tag 
+        ORDER BY usage_count DESC, tag ASC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Object[]> getPopularTags(@Param("limit") int limit);
+
+    /**
+     * Get tag usage statistics for analytics
+     */
+    @Query(value = """
+        SELECT tag, COUNT(*) as usage_count 
+        FROM (SELECT unnest(tags) as tag FROM exam WHERE tags IS NOT NULL) t 
+        GROUP BY tag 
+        ORDER BY usage_count DESC, tag ASC
+        """, nativeQuery = true)
+    List<Object[]> getTagStatistics();
+
+    // ===== DATE-BASED CONVENIENCE METHODS =====
+    /**
+     * Find recent exams - commonly used for dashboard
+     */
+    @Query("SELECT e FROM Exam e WHERE e.uploadedAt >= :date ORDER BY e.uploadedAt DESC")
+    List<Exam> findRecentExams(@Param("date") Instant date);
+
+    /**
+     * Find exams in date range - for performance-sensitive queries
+     */
+    @Query("SELECT e FROM Exam e WHERE e.uploadedAt BETWEEN :start AND :end ORDER BY e.uploadedAt DESC")
+    List<Exam> findExamsInDateRange(@Param("start") Instant start, @Param("end") Instant end);
+
+    // ===== PERFORMANCE AND UTILITY QUERIES =====
+    /**
+     * Count total exams - cached and optimized
+     */
+    @Query("SELECT COUNT(e) FROM Exam e")
+    long countTotalExams();
+
+    /**
+     * Get exam summaries for lightweight operations (ID, title, author, date
+     * only)
+     */
+    @Query("SELECT e.id, e.title, e.uploadedBy, e.uploadedAt FROM Exam e ORDER BY e.uploadedAt DESC")
+    List<Object[]> findExamSummaries();
+
+    /**
+     * Check if exam exists by title and author - for duplicate detection
+     */
+    @Query("SELECT COUNT(e) > 0 FROM Exam e WHERE LOWER(e.title) = LOWER(:title) AND e.uploadedBy = :author")
+    boolean existsByTitleAndAuthor(@Param("title") String title, @Param("author") String author);
+
+    /**
+     * Get exam counts by author for analytics
+     */
+    @Query("SELECT e.uploadedBy, COUNT(e) FROM Exam e GROUP BY e.uploadedBy ORDER BY COUNT(e) DESC")
+    List<Object[]> getExamCountsByAuthor();
+
+    /**
+     * Find exams by title containing text (case insensitive)
+     */
+    @Query("SELECT e FROM Exam e WHERE LOWER(e.title) LIKE LOWER(CONCAT('%', :title, '%')) ORDER BY e.uploadedAt DESC")
+    List<Exam> findByTitleContainingIgnoreCase(@Param("title") String title);
+
+    /**
+     * Find exams by author containing text (case insensitive)
+     */
+    @Query("SELECT e FROM Exam e WHERE LOWER(e.uploadedBy) LIKE LOWER(CONCAT('%', :author, '%')) ORDER BY e.uploadedAt DESC")
+    List<Exam> findByUploadedByContainingIgnoreCase(@Param("author") String author);
+
+    /**
+     * Full-text search across title and description
+     */
+    @Query("SELECT e FROM Exam e WHERE "
+            + "LOWER(e.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR "
+            + "LOWER(e.description) LIKE LOWER(CONCAT('%', :searchTerm, '%')) "
+            + "ORDER BY e.uploadedAt DESC")
+    List<Exam> findByTitleOrDescriptionContaining(@Param("searchTerm") String searchTerm);
+
+    // ===== SPECIALIZED QUERIES =====
+    /**
+     * Find exams with null or empty tags - for data cleanup
+     */
+    @Query(value = "SELECT * FROM exam WHERE tags IS NULL OR array_length(tags, 1) IS NULL ORDER BY uploaded_at DESC", nativeQuery = true)
+    List<Exam> findExamsWithoutTags();
+
+    /**
+     * Find exams with many tags - for analysis
+     */
+    @Query(value = "SELECT * FROM exam WHERE array_length(tags, 1) >= :minTags ORDER BY array_length(tags, 1) DESC", nativeQuery = true)
+    List<Exam> findExamsWithManyTags(@Param("minTags") int minTags);
+
+    /**
+     * Get recent exam activity for dashboard
      */
     @Query(value = """
         SELECT 
-            COUNT(*) as total_exams,
-            COUNT(DISTINCT uploaded_by) as unique_authors,
-            MIN(uploaded_at) as earliest_exam,
-            MAX(uploaded_at) as latest_exam,
-            AVG(q.question_count) as avg_questions
-        FROM exam e
-        LEFT JOIN (
-            SELECT exam_id, COUNT(*) as question_count 
-            FROM question 
-            GROUP BY exam_id
-        ) q ON e.id = q.exam_id
+            DATE_TRUNC('day', uploaded_at) as day,
+            COUNT(*) as exam_count
+        FROM exam 
+        WHERE uploaded_at >= :since
+        GROUP BY DATE_TRUNC('day', uploaded_at)
+        ORDER BY day DESC
         """, nativeQuery = true)
-    Object[] getExamStatistics();
-    
-    // ===== UNIVERSAL COMPATIBLE QUERIES =====
-    
+    List<Object[]> getExamActivityByDay(@Param("since") Instant since);
+
     /**
-     * Get all exams for service-layer processing
-     * Works on any database including H2
+     * Find exam with questions loaded - for exam taking
      */
-    @Query("SELECT e FROM Exam e")
-    List<Exam> findAllExamsForTagProcessing();
-    
+    @EntityGraph(attributePaths = {"questions"})
+    @Query("SELECT e FROM Exam e WHERE e.id = :id")
+    Optional<Exam> findByIdWithQuestions(@Param("id") UUID id);
+
     /**
-     * Find exams by exam status
+     * Find exam with comments loaded - for display
      */
-    @Query("SELECT e FROM Exam e WHERE LOWER(e.examStatus) = LOWER(:examStatus)")
-    List<Exam> findByExamStatusIgnoreCase(@Param("examStatus") String examStatus);
-    
+    @EntityGraph(attributePaths = {"comments"})
+    @Query("SELECT e FROM Exam e WHERE e.id = :id")
+    Optional<Exam> findByIdWithComments(@Param("id") UUID id);
+
     /**
-     * Find exams within date range
+     * Find recent exams with questions for dashboard
      */
-    @Query("SELECT e FROM Exam e WHERE e.uploadedAt BETWEEN :startDate AND :endDate ORDER BY e.uploadedAt DESC")
-    List<Exam> findByUploadedAtBetween(@Param("startDate") Instant startDate, @Param("endDate") Instant endDate);
-    
-    /**
-     * Find exams uploaded after a specific date
-     */
+    @EntityGraph(attributePaths = {"questions"})
     @Query("SELECT e FROM Exam e WHERE e.uploadedAt >= :date ORDER BY e.uploadedAt DESC")
-    List<Exam> findByUploadedAtAfter(@Param("date") Instant date);
-    
-    /**
-     * Find exams uploaded before a specific date
-     */
-    @Query("SELECT e FROM Exam e WHERE e.uploadedAt <= :date ORDER BY e.uploadedAt DESC")
-    List<Exam> findByUploadedAtBefore(@Param("date") Instant date);
+    List<Exam> findRecentExamsWithQuestions(@Param("date") Instant date);
 }

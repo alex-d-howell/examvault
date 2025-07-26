@@ -2,20 +2,21 @@ package com.howell.examvault.base.domain;
 
 import java.io.Serializable;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -35,33 +36,26 @@ public class Exam implements Serializable {
     @Size(max = 5000, message = "Description cannot exceed 5000 characters")
     private String description;
 
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "tags", columnDefinition = "text[]")
     private List<String> tags;
 
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
-    @JoinColumn(name = "exam_id")
-    @Valid
+    @OneToMany(mappedBy = "exam", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private List<Question> questions;
 
     private String uploadedBy;
 
     private Instant uploadedAt;
 
-    private String examStatus;
-
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
-    @JoinColumn(name = "exam_id")
-    private List<Comment> comments = new ArrayList<>();
-
     public Exam() {
     }
 
-    public Exam(String title, String description, List<Question> questions, String uploadedBy, Instant uploadedAt, String examStatus, List<String> tags) {
+    public Exam(String title, String description, List<Question> questions, String uploadedBy, Instant uploadedAt, List<String> tags) {
         this.title = title;
         this.description = description;
         this.questions = questions;
         this.uploadedBy = uploadedBy;
         this.uploadedAt = uploadedAt;
-        this.examStatus = examStatus;
         this.tags = tags;
     }
 
@@ -111,28 +105,6 @@ public class Exam implements Serializable {
 
     public void setUploadedAt(Instant uploadedAt) {
         this.uploadedAt = uploadedAt;
-    }
-
-    public String getExamStatus() {
-        return examStatus;
-    }
-
-    public void setExamStatus(String examStatus) {
-        this.examStatus = examStatus;
-    }
-
-    public List<Comment> getComments() {
-        if (this.comments == null) {
-            this.comments = new ArrayList<>();
-        }
-        return this.comments;
-    }
-
-    public void addComment(Comment comment) {
-        if (this.comments == null) {
-            this.comments = new ArrayList<>();
-        }
-        this.comments.add(comment);
     }
 
     public List<String> getTags() {

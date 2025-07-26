@@ -16,7 +16,6 @@ export default function HomeView() {
     // Redirect if not authenticated
     useEffect(() => {
         if (authInitialized && !loading && !authenticated) {
-            console.log('User not authenticated, redirecting to root');
             navigate('/');
         }
     }, [authenticated, authInitialized, loading, navigate]);
@@ -33,13 +32,13 @@ export default function HomeView() {
         try {
             // Load recent exams and user's created exams
             const [allExams, userExams] = await Promise.all([
-                ExamService.getAllExams(),
+                ExamService.getRecentExams(7),
                 ExamService.getMyExams()
             ]);
             
             // Get the 6 most recent exams for browsing
             const recent = allExams?.slice(-6).reverse();
-            setRecentExams(recent!);
+            setRecentExams(recent || []);
             setMyExams(userExams || []);
         } catch (error) {
             console.error('Error loading user data:', error);
@@ -88,135 +87,85 @@ export default function HomeView() {
                             <h1 className="home-welcome-title">
                                 Welcome back, {user?.name?.split(' ')[0]}!
                             </h1>
-                            <p className="home-welcome-subtitle">Ready to create or take some exams?</p>
+                            <p className="home-welcome-subtitle">
+                                You've created {myExams.length} exam{myExams.length !== 1 ? 's' : ''}
+                            </p>
                         </div>
                     </div>
-                    <Button
-                        onClick={() => navigate('/exams/create')}
-                        theme="primary"
-                        className="home-create-btn"
-                    >
-                        <Icon icon="vaadin:plus" />
-                        Create New Exam
-                    </Button>
-                </div>
-            </div>
-
-            <div className="home-grid">
-                {/* Quick Stats */}
-                <div className="home-sidebar">
-                    <div className="home-stats-card">
-                        <h2 className="home-section-title">Quick Stats</h2>
-                        <div className="home-stats-content">
-                            <div className="home-stat-item">
-                                <span className="home-stat-label">Exams Created</span>
-                                <span className="home-stat-value home-stat-value-blue">
-                                    {loadingData ? '...' : myExams.length}
-                                </span>
-                            </div>
-                            <div className="home-stat-item">
-                                <span className="home-stat-label">Total Available</span>
-                                <span className="home-stat-value home-stat-value-green">
-                                    {loadingData ? '...' : recentExams.length}
-                                </span>
-                            </div>
-                        </div>
-                        
-                        <div className="home-quick-actions">
-                            <Button
-                                onClick={() => navigate('/exams')}
-                                theme="secondary"
-                                className="home-action-btn"
-                            >
-                                Browse All Exams
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Recent Activity */}
-                <div className="home-main-content">
-                    <div className="home-recent-card">
-                        <div className="home-card-header">
-                            <h2 className="home-section-title">Recent Exams</h2>
-                            <Button
-                                onClick={() => navigate('/exams')}
-                                theme="tertiary small"
-                            >
-                                View All
-                            </Button>
-                        </div>
-                        
-                        {loadingData ? (
-                            <div className="home-loading-state">
-                                <div className="home-spinner-small"></div>
-                            </div>
-                        ) : recentExams.length > 0 ? (
-                            <div className="home-exam-grid">
-                                {recentExams.slice(0, 4).map((exam) => (
-                                    <div
-                                        key={exam.id}
-                                        className="home-exam-card"
-                                        onClick={() => navigate(`/exams/${exam.id}/attempt`)}
-                                    >
-                                        <h3 className="home-exam-title">{exam.title}</h3>
-                                        <p className="home-exam-description">
-                                            {exam.description}
-                                        </p>
-                                        <div className="home-exam-meta">
-                                            <span>{exam.questions?.length || 0} questions</span>
-                                            <span>by {exam.uploadedBy?.split('@')[0]}</span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="home-empty-state">
-                                <Icon icon="vaadin:book" className="home-empty-icon" />
-                                <p>No exams available yet. Be the first to create one!</p>
-                            </div>
-                        )}
+                    <div className="home-action-buttons">
+                        <Button
+                            onClick={() => navigate('/exams/create')}
+                            theme="primary"
+                            className="home-create-btn"
+                        >
+                            <Icon icon="vaadin:plus" />
+                            Create Exam
+                        </Button>
+                        <Button
+                            onClick={() => navigate('/exams')}
+                            theme="secondary"
+                            className="home-browse-btn"
+                        >
+                            <Icon icon="vaadin:book" />
+                            Browse Exams
+                        </Button>
                     </div>
                 </div>
             </div>
 
-            {/* My Exams Section */}
-            {myExams.length > 0 && (
-                <div className="home-my-exams-section">
-                    <div className="home-my-exams-card">
-                        <div className="home-card-header">
-                            <h2 className="home-section-title">My Exams</h2>
+            {/* Main Dashboard Content */}
+            <div className="home-dashboard">
+                {/* My Exams Section - Show if user has created exams */}
+                {myExams.length > 0 && (
+                    <div className="home-section">
+                        <div className="home-section-header">
+                            <h2 className="home-section-title">
+                                <Icon icon="vaadin:user-card" className="section-icon" />
+                                My Exams ({myExams.length})
+                            </h2>
                             <Button
                                 onClick={() => navigate('/exams/create')}
                                 theme="tertiary small"
                             >
-                                Create New
+                                Create Another
                             </Button>
                         </div>
                         
-                        <div className="home-my-exams-grid">
-                            {myExams.slice(0, 6).map((exam) => (
-                                <div key={exam.id} className="home-my-exam-card">
-                                    <h3 className="home-exam-title">{exam.title}</h3>
+                        <div className="home-exam-grid">
+                            {myExams.slice(0, 4).map((exam) => (
+                                <div key={exam.id} className="home-exam-card home-my-exam">
+                                    <div className="exam-card-header">
+                                        <h3 className="home-exam-title">{exam.title}</h3>
+                                        <span className="exam-owner-badge">Mine</span>
+                                    </div>
                                     <p className="home-exam-description">
                                         {exam.description}
                                     </p>
-                                    <div className="home-exam-actions">
+                                    <div className="home-exam-footer">
                                         <span className="home-exam-questions">
                                             {exam.questions?.length || 0} questions
                                         </span>
                                         <div className="home-exam-buttons">
                                             <Button
-                                                onClick={() => navigate(`/exams/${exam.id}/attempt`)}
+                                                onClick={() => navigate(`/exams/${exam.id}`)}
                                                 theme="tertiary small"
+                                                title="View exam details"
                                             >
-                                                Take
+                                                <Icon icon="vaadin:eye" />
                                             </Button>
                                             <Button
                                                 onClick={() => navigate(`/exams/${exam.id}/edit`)}
                                                 theme="tertiary small"
+                                                title="Edit exam"
                                             >
-                                                Edit
+                                                <Icon icon="vaadin:edit" />
+                                            </Button>
+                                            <Button
+                                                onClick={() => navigate(`/exams/${exam.id}/attempt`)}
+                                                theme="primary small"
+                                                title="Take exam"
+                                            >
+                                                <Icon icon="vaadin:play" />
                                             </Button>
                                         </div>
                                     </div>
@@ -224,8 +173,68 @@ export default function HomeView() {
                             ))}
                         </div>
                     </div>
+                )}
+
+                {/* Recent Exams Section */}
+                <div className="home-section">
+                    <div className="home-section-header">
+                        <h2 className="home-section-title">
+                            <Icon icon="vaadin:clock" className="section-icon" />
+                            Recent Exams
+                        </h2>
+                        <Button
+                            onClick={() => navigate('/exams')}
+                            theme="tertiary small"
+                        >
+                            Browse All
+                        </Button>
+                    </div>
+                    
+                    {loadingData ? (
+                        <div className="home-loading-state">
+                            <div className="home-spinner-small"></div>
+                            <p>Loading exams...</p>
+                        </div>
+                    ) : recentExams.length > 0 ? (
+                        <div className="home-exam-grid">
+                            {recentExams.slice(0, 4).map((exam) => (
+                                <div
+                                    key={exam.id}
+                                    className="home-exam-card"
+                                    onClick={() => navigate(`/exams/${exam.id}`)}
+                                >
+                                    <div className="exam-card-header">
+                                        <h3 className="home-exam-title">{exam.title}</h3>
+                                        {exam.uploadedBy === user?.email && (
+                                            <span className="exam-owner-badge">Mine</span>
+                                        )}
+                                    </div>
+                                    <p className="home-exam-description">
+                                        {exam.description}
+                                    </p>
+                                    <div className="home-exam-footer">
+                                        <div className="home-exam-meta">
+                                            <span>{exam.questions?.length || 0} questions</span>
+                                            <span>by {exam.uploadedBy?.split('@')[0]}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="home-empty-state">
+                            <Icon icon="vaadin:book" className="home-empty-icon" />
+                            <p>No exams available yet.</p>
+                            <Button
+                                onClick={() => navigate('/exams/create')}
+                                theme="primary"
+                            >
+                                Create the First Exam
+                            </Button>
+                        </div>
+                    )}
                 </div>
-            )}
+            </div>
         </div>
     );
 }

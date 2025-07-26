@@ -1,21 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { 
-    Button, 
-    TextField, 
-    Select, 
-    Details, 
+import React, { useState } from 'react';
+import {
+    Button,
+    TextField,
+    Select,
+    Details,
     Icon,
     IntegerField,
     DatePicker
 } from '@vaadin/react-components';
 import { TagSearch } from 'Frontend/components/tagComponents/tagsComponents';
-import { ExamService } from 'Frontend/generated/endpoints';
 
 interface SearchFilters {
     title: string;
     uploadedBy: string;
     tags: string[];
-    examStatus: string;
     startDate: string;
     endDate: string;
     minQuestions: number | null;
@@ -29,12 +27,6 @@ interface AdvancedSearchProps {
     className?: string;
 }
 
-interface SearchStats {
-    totalExams: number;
-    uniqueAuthors: number;
-    avgQuestions: number;
-}
-
 export const AdvancedSearchComponent: React.FC<AdvancedSearchProps> = ({
     onSearch,
     onClear,
@@ -45,7 +37,6 @@ export const AdvancedSearchComponent: React.FC<AdvancedSearchProps> = ({
         title: '',
         uploadedBy: '',
         tags: [],
-        examStatus: '',
         startDate: '',
         endDate: '',
         minQuestions: null,
@@ -55,49 +46,13 @@ export const AdvancedSearchComponent: React.FC<AdvancedSearchProps> = ({
 
     // UI states
     const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
-    const [examStatuses, setExamStatuses] = useState<string[]>([]);
-    const [searchStats, setSearchStats] = useState<SearchStats | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-
-    // Load initial data
-    useEffect(() => {
-        loadExamStatuses();
-        loadSearchStats();
-    }, []);
-
-    const loadExamStatuses = async () => {
-        try {
-            const statuses = await ExamService.getAllExamStatuses();
-            // Filter out any undefined values to ensure we only have strings
-            const validStatuses = (statuses || []).filter((status): status is string => 
-                status !== undefined && status !== null && typeof status === 'string' && status.trim().length > 0
-            );
-            setExamStatuses(validStatuses);
-        } catch (error) {
-            console.error('Error loading exam statuses:', error);
-        }
-    };
-
-    const loadSearchStats = async () => {
-        try {
-            const stats = await ExamService.getExamStatistics();
-            if (stats) {
-                setSearchStats({
-                    totalExams: stats.totalExams as number || 0,
-                    uniqueAuthors: stats.uniqueAuthors as number || 0,
-                    avgQuestions: Math.round((stats.avgQuestions as number || 0) * 10) / 10
-                });
-            }
-        } catch (error) {
-            console.error('Error loading search stats:', error);
-        }
-    };
 
     const updateFilter = (key: keyof SearchFilters, value: any) => {
         setFilters(prev => {
             // Special handling for tags to ensure type safety
             if (key === 'tags' && Array.isArray(value)) {
-                const validTags = value.filter((tag): tag is string => 
+                const validTags = value.filter((tag): tag is string =>
                     typeof tag === 'string' && tag.length > 0
                 );
                 return {
@@ -126,7 +81,6 @@ export const AdvancedSearchComponent: React.FC<AdvancedSearchProps> = ({
             title: '',
             uploadedBy: '',
             tags: [], // Ensure this is an empty string array, not undefined
-            examStatus: '',
             startDate: '',
             endDate: '',
             minQuestions: null,
@@ -137,7 +91,7 @@ export const AdvancedSearchComponent: React.FC<AdvancedSearchProps> = ({
         onClear();
     };
 
-    const hasFilters = Object.values(filters).some(value => 
+    const hasFilters = Object.values(filters).some(value =>
         Array.isArray(value) ? value.length > 0 : value !== '' && value !== null
     );
 
@@ -183,24 +137,6 @@ export const AdvancedSearchComponent: React.FC<AdvancedSearchProps> = ({
                         {isLoading ? 'Searching...' : 'Search'}
                     </Button>
                 </div>
-
-                {/* Search Stats */}
-                {searchStats && (
-                    <div className="search-stats">
-                        <span className="stat-item">
-                            <Icon icon="vaadin:records" />
-                            {searchStats.totalExams} exams
-                        </span>
-                        <span className="stat-item">
-                            <Icon icon="vaadin:user" />
-                            {searchStats.uniqueAuthors} authors
-                        </span>
-                        <span className="stat-item">
-                            <Icon icon="vaadin:question-circle" />
-                            {searchStats.avgQuestions} avg questions
-                        </span>
-                    </div>
-                )}
             </div>
 
             {/* Advanced Filters Toggle */}
@@ -211,7 +147,7 @@ export const AdvancedSearchComponent: React.FC<AdvancedSearchProps> = ({
                 className="advanced-filters-section"
             >
                 <div className="advanced-filters-content">
-                    {/* Author and Status Row */}
+                    {/* Author Row */}
                     <div className="filter-row">
                         <TextField
                             label="Filter by Author"
@@ -223,18 +159,6 @@ export const AdvancedSearchComponent: React.FC<AdvancedSearchProps> = ({
                         >
                             <Icon slot="prefix" icon="vaadin:user" />
                         </TextField>
-
-                        <Select
-                            label="Exam Status"
-                            value={filters.examStatus}
-                            onValueChanged={(e) => updateFilter('examStatus', e.detail.value)}
-                            placeholder="Any status"
-                            items={[
-                                { label: 'Any Status', value: '' },
-                                ...examStatuses.map(status => ({ label: status, value: status }))
-                            ]}
-                            className="filter-field"
-                        />
                     </div>
 
                     {/* Tag Search */}
@@ -243,7 +167,7 @@ export const AdvancedSearchComponent: React.FC<AdvancedSearchProps> = ({
                             selectedTags={filters.tags}
                             onTagsChange={(tags: (string | undefined)[]) => {
                                 // Filter out any undefined values and ensure only valid strings
-                                const validTags: string[] = tags.filter((tag): tag is string => 
+                                const validTags: string[] = tags.filter((tag): tag is string =>
                                     tag !== undefined && tag !== null && typeof tag === 'string' && tag.trim().length > 0
                                 );
                                 updateFilter('tags', validTags);
@@ -276,7 +200,7 @@ export const AdvancedSearchComponent: React.FC<AdvancedSearchProps> = ({
                         <IntegerField
                             label="Min Questions"
                             value={filters.minQuestions?.toString() || ''}
-                            onValueChanged={(e) => updateFilter('minQuestions', 
+                            onValueChanged={(e) => updateFilter('minQuestions',
                                 e.detail.value ? parseInt(e.detail.value) : null)}
                             placeholder="0"
                             min={0}
@@ -289,7 +213,7 @@ export const AdvancedSearchComponent: React.FC<AdvancedSearchProps> = ({
                         <IntegerField
                             label="Max Questions"
                             value={filters.maxQuestions?.toString() || ''}
-                            onValueChanged={(e) => updateFilter('maxQuestions', 
+                            onValueChanged={(e) => updateFilter('maxQuestions',
                                 e.detail.value ? parseInt(e.detail.value) : null)}
                             placeholder="∞"
                             min={filters.minQuestions || 0}
@@ -334,26 +258,20 @@ export const AdvancedSearchComponent: React.FC<AdvancedSearchProps> = ({
                         {filters.title && (
                             <span className="filter-chip">
                                 Title: "{filters.title}"
-                                <button onClick={() => updateFilter('title', '')}>×</button>
+                                <button onClick={() => updateFilter('title', '')}>x</button>
                             </span>
                         )}
                         {filters.uploadedBy && (
                             <span className="filter-chip">
                                 Author: "{filters.uploadedBy}"
-                                <button onClick={() => updateFilter('uploadedBy', '')}>×</button>
-                            </span>
-                        )}
-                        {filters.examStatus && (
-                            <span className="filter-chip">
-                                Status: {filters.examStatus}
-                                <button onClick={() => updateFilter('examStatus', '')}>×</button>
+                                <button onClick={() => updateFilter('uploadedBy', '')}>x</button>
                             </span>
                         )}
                         {filters.tags.map(tag => (
                             <span key={tag} className="filter-chip">
                                 Tag: {tag}
-                                <button onClick={() => updateFilter('tags', 
-                                    filters.tags.filter((t): t is string => t !== tag && t !== undefined))}>×</button>
+                                <button onClick={() => updateFilter('tags',
+                                    filters.tags.filter((t): t is string => t !== tag && t !== undefined))}>x</button>
                             </span>
                         ))}
                         {(filters.startDate || filters.endDate) && (
@@ -362,7 +280,7 @@ export const AdvancedSearchComponent: React.FC<AdvancedSearchProps> = ({
                                 <button onClick={() => {
                                     updateFilter('startDate', '');
                                     updateFilter('endDate', '');
-                                }}>×</button>
+                                }}>x</button>
                             </span>
                         )}
                         {(filters.minQuestions !== null || filters.maxQuestions !== null) && (
@@ -371,7 +289,7 @@ export const AdvancedSearchComponent: React.FC<AdvancedSearchProps> = ({
                                 <button onClick={() => {
                                     updateFilter('minQuestions', null);
                                     updateFilter('maxQuestions', null);
-                                }}>×</button>
+                                }}>x</button>
                             </span>
                         )}
                     </div>

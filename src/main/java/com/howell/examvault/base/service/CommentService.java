@@ -1,16 +1,18 @@
 package com.howell.examvault.base.service;
 
-import java.time.Instant;
+import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.howell.examvault.base.domain.Comment;
-import com.howell.examvault.base.domain.Exam;
+import com.howell.examvault.base.exception.CommentNotFoundException;
+import com.howell.examvault.base.exception.ExamNotFoundException;
+import com.howell.examvault.base.exception.UnauthorizedException;
+import com.howell.examvault.base.exception.ValidationException;
+import com.howell.examvault.base.repository.CommentRepository;
 import com.howell.examvault.base.repository.ExamRepository;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.hilla.BrowserCallable;
@@ -19,267 +21,166 @@ import jakarta.annotation.security.PermitAll;
 
 @BrowserCallable
 @Service
+@Transactional(readOnly = true)
 public class CommentService {
 
     private final ExamRepository examRepository;
+    private final CommentRepository commentRepository;
+    private final UserService userService; // ✅ ADDED - Use UserService for consistency
+    private final Clock clock;
 
-    public CommentService(ExamRepository examRepository) {
+    public CommentService(ExamRepository examRepository, 
+                         CommentRepository commentRepository,
+                         UserService userService, // ✅ ADDED - Inject UserService
+                         Clock clock) {
         this.examRepository = examRepository;
+        this.commentRepository = commentRepository;
+        this.userService = userService; // ✅ ADDED
+        this.clock = clock;
     }
 
-    /**
-     * Get the current user's email, or null if anonymous
-     */
-    private String getCurrentUserEmail() {
-        try {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof OidcUser) {
-                OidcUser user = (OidcUser) auth.getPrincipal();
-                return user.getEmail();
-            }
-        } catch (Exception e) {
-            System.err.println("Error getting current user email: " + e.getMessage());
-        }
-        return null;
-    }
+    // ✅ REMOVED - These methods are no longer needed:
+    // private String getCurrentUserEmail() { ... }
+    // private boolean isCurrentUserAuthenticated() { ... }
 
-    /**
-     * Check if the current user is authenticated
-     */
-    private boolean isCurrentUserAuthenticated() {
-        return getCurrentUserEmail() != null;
-    }
-
-    /**
-     * Get comments for a specific exam
-     * Available to everyone
-     *
-     * @param examId the UUID of the exam
-     * @return list of comments for the exam
-     */
     @AnonymousAllowed
     public List<Comment> getExamComments(String examId) {
         try {
             UUID examUuid = UUID.fromString(examId);
-            Exam exam = examRepository.findById(examUuid).orElse(null);
-            if (exam == null) {
-                throw new RuntimeException("Exam not found");
+            
+            // Verify exam exists
+            if (!examRepository.existsById(examUuid)) {
+                throw new ExamNotFoundException(examId);
             }
 
-            return exam.getComments() != null ? exam.getComments() : List.of();
+            // Get comments directly from comment repository
+            return commentRepository.findByExamIdOrderByDateCreatedDesc(examUuid);
+            
         } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Invalid exam ID format");
+            throw new ValidationException("Invalid exam ID format");
         }
     }
 
-    /**
-     * Add a comment to an exam
-     * Requires authentication
-     *
-     * @param examId the UUID of the exam to comment on
-     * @param commentText the comment text
-     * @param rating optional rating (1-5)
-     * @return the created Comment
-     */
     @PermitAll
+    @Transactional
     public Comment addComment(String examId, String commentText, Integer rating) {
-        if (!isCurrentUserAuthenticated()) {
-            throw new SecurityException("Authentication required to add comments");
+        if (!userService.isAuthenticated()) { // ✅ CHANGED - Use UserService
+            throw new UnauthorizedException("Authentication required to add comments");
         }
 
         try {
-            System.out.println("Adding comment - examId: " + examId + ", rating: " + rating);
-            
             UUID examUuid = UUID.fromString(examId);
-            Exam exam = examRepository.findById(examUuid).orElse(null);
-            if (exam == null) {
-                throw new RuntimeException("Exam not found");
+            
+            // Verify exam exists
+            if (!examRepository.existsById(examUuid)) {
+                throw new ExamNotFoundException(examId);
             }
 
-            String userEmail = getCurrentUserEmail();
-            Comment comment = new Comment(userEmail, Instant.now(), commentText);
+            String userEmail = userService.getAuthenticatedUser().email(); // ✅ CHANGED - Use UserService
+            
+            // Create comment with examId set manually
+            Comment comment = new Comment(examUuid, userEmail, clock.instant(), commentText);
 
-            // Only set rating if it's a valid rating (1-5), otherwise leave as default (0)
             if (rating != null && rating >= 1 && rating <= 5) {
                 comment.setExamRating(rating);
-                System.out.println("Set rating to: " + rating);
             }
-            // Don't set rating to 0 explicitly - let it stay at default
 
-            exam.addComment(comment);
-            Exam savedExam = examRepository.save(exam);
-            
-            // Find the saved comment with its generated ID
-            Comment savedComment = null;
-            if (savedExam.getComments() != null) {
-                // Get the last comment (the one we just added) - find by user email and timestamp
-                var comments = savedExam.getComments();
-                for (int i = comments.size() - 1; i >= 0; i--) {
-                    Comment c = comments.get(i);
-                    if (c.getUserEmail().equals(userEmail) && 
-                        c.getCommentString().equals(commentText)) {
-                        savedComment = c;
-                        break;
-                    }
-                }
-            }
-            
-            System.out.println("Comment saved with ID: " + (savedComment != null ? savedComment.getId() : "null"));
-            return savedComment != null ? savedComment : comment;
+            // Save directly to comment repository
+            return commentRepository.save(comment);
             
         } catch (IllegalArgumentException e) {
-            System.err.println("Error parsing examId: " + examId);
-            throw new RuntimeException("Invalid exam ID format");
-        } catch (RuntimeException e) {
-            System.err.println("Error adding comment: " + e.getMessage());
-            throw e;
+            throw new ValidationException("Invalid exam ID format");
         }
     }
 
-    /**
-     * Update a comment made by the current user
-     * Requires authentication and ownership of the comment
-     *
-     * @param examId the UUID of the exam
-     * @param commentId the UUID of the comment to update
-     * @param newCommentText the new comment text
-     * @param newRating the new rating (1-5 or null)
-     * @return the updated Comment
-     */
     @PermitAll
+    @Transactional
     public Comment updateComment(String examId, String commentId, String newCommentText, Integer newRating) {
-        if (!isCurrentUserAuthenticated()) {
-            throw new SecurityException("Authentication required to update comments");
+        if (!userService.isAuthenticated()) { // ✅ CHANGED - Use UserService
+            throw new UnauthorizedException("Authentication required to update comments");
         }
 
         try {
-            System.out.println("Updating comment - examId: " + examId + ", commentId: " + commentId);
-            
             UUID examUuid = UUID.fromString(examId);
             UUID commentUuid = UUID.fromString(commentId);
             
-            Exam exam = examRepository.findById(examUuid).orElse(null);
-            if (exam == null) {
-                throw new RuntimeException("Exam not found");
+            // Verify exam exists
+            if (!examRepository.existsById(examUuid)) {
+                throw new ExamNotFoundException(examId);
             }
 
-            String userEmail = getCurrentUserEmail();
+            // Find comment
+            Comment comment = commentRepository.findById(commentUuid)
+                    .orElseThrow(() -> new CommentNotFoundException("Comment not found with ID: " + commentId));
             
-            // Find the comment to update
-            Comment commentToUpdate = null;
-            if (exam.getComments() != null) {
-                for (Comment comment : exam.getComments()) {
-                    if (comment.getId() != null && comment.getId().equals(commentUuid)) {
-                        commentToUpdate = comment;
-                        break;
-                    }
-                }
+            // Verify comment belongs to this exam
+            if (!comment.getExamId().equals(examUuid)) {
+                throw new ValidationException("Comment does not belong to this exam");
             }
             
-            if (commentToUpdate == null) {
-                throw new RuntimeException("Comment not found");
+            // Check ownership
+            String userEmail = userService.getAuthenticatedUser().email(); // ✅ CHANGED - Use UserService
+            if (!comment.getUserEmail().equals(userEmail)) {
+                throw new UnauthorizedException("You can only update your own comments");
             }
             
-            // Check if user owns this comment
-            // TODO: Add admin role checking here when we implement roles
-            if (!commentToUpdate.getUserEmail().equals(userEmail)) {
-                throw new SecurityException("You can only update your own comments");
-            }
-            
-            // Update the comment
-            commentToUpdate.setCommentString(newCommentText);
+            // Update comment
+            comment.setCommentString(newCommentText);
             if (newRating != null && newRating >= 1 && newRating <= 5) {
-                commentToUpdate.setExamRating(newRating);
-                System.out.println("Updated rating to: " + newRating);
+                comment.setExamRating(newRating);
             } else {
-                // Don't set to 0, leave it as is if they didn't provide a rating
-                // Only clear if they explicitly want to remove the rating
-                commentToUpdate.setExamRating(0);
-                System.out.println("Cleared rating (set to 0)");
+                comment.setExamRating(0);
             }
             
-            examRepository.save(exam);
-            return commentToUpdate;
+            return commentRepository.save(comment);
             
         } catch (IllegalArgumentException e) {
-            System.err.println("Error parsing UUID - examId: " + examId + ", commentId: " + commentId);
-            throw new RuntimeException("Invalid ID format");
-        } catch (RuntimeException e) {
-            System.err.println("Error updating comment: " + e.getMessage());
-            throw e;
+            throw new ValidationException("Invalid ID format");
         }
     }
 
-    /**
-     * Delete a comment made by the current user
-     * Requires authentication and ownership of the comment
-     *
-     * @param examId the UUID of the exam
-     * @param commentId the UUID of the comment to delete
-     */
     @PermitAll
+    @Transactional
     public void deleteComment(String examId, String commentId) {
-        if (!isCurrentUserAuthenticated()) {
-            throw new SecurityException("Authentication required to delete comments");
+        if (!userService.isAuthenticated()) { // ✅ CHANGED - Use UserService
+            throw new UnauthorizedException("Authentication required to delete comments");
         }
 
         try {
-            System.out.println("Deleting comment - examId: " + examId + ", commentId: " + commentId);
-            
             UUID examUuid = UUID.fromString(examId);
             UUID commentUuid = UUID.fromString(commentId);
             
-            Exam exam = examRepository.findById(examUuid).orElse(null);
-            if (exam == null) {
-                throw new RuntimeException("Exam not found");
+            // Verify exam exists
+            if (!examRepository.existsById(examUuid)) {
+                throw new ExamNotFoundException(examId);
             }
 
-            String userEmail = getCurrentUserEmail();
+            // Find comment
+            Comment comment = commentRepository.findById(commentUuid)
+                    .orElseThrow(() -> new CommentNotFoundException("Comment not found with ID: " + commentId));
             
-            // Find and remove the comment
-            if (exam.getComments() != null) {
-                Comment commentToDelete = null;
-                for (Comment comment : exam.getComments()) {
-                    if (comment.getId() != null && comment.getId().equals(commentUuid)) {
-                        commentToDelete = comment;
-                        break;
-                    }
-                }
-                
-                if (commentToDelete == null) {
-                    throw new RuntimeException("Comment not found");
-                }
-                
-                // Check if user owns this comment
-                // TODO: Add admin role checking here when we implement roles
-                if (!commentToDelete.getUserEmail().equals(userEmail)) {
-                    throw new SecurityException("You can only delete your own comments");
-                }
-                
-                exam.getComments().remove(commentToDelete);
-                examRepository.save(exam);
+            // Verify comment belongs to this exam
+            if (!comment.getExamId().equals(examUuid)) {
+                throw new ValidationException("Comment does not belong to this exam");
             }
             
+            // Check ownership
+            String userEmail = userService.getAuthenticatedUser().email(); // ✅ CHANGED - Use UserService
+            if (!comment.getUserEmail().equals(userEmail)) {
+                throw new UnauthorizedException("You can only delete your own comments");
+            }
+            
+            // Delete directly
+            commentRepository.deleteById(commentUuid);
+            
         } catch (IllegalArgumentException e) {
-            System.err.println("Error parsing UUID - examId: " + examId + ", commentId: " + commentId);
-            throw new RuntimeException("Invalid ID format");
-        } catch (RuntimeException e) {
-            System.err.println("Error deleting comment: " + e.getMessage());
-            throw e;
+            throw new ValidationException("Invalid ID format");
         }
     }
 
-    /**
-     * Check if the current user can modify a specific comment
-     * Available to everyone to check edit permissions
-     *
-     * @param examId the UUID of the exam
-     * @param commentId the UUID of the comment to check
-     * @return true if the current user can modify the comment
-     */
     @AnonymousAllowed
     public boolean canUserModifyComment(String examId, String commentId) {
-        if (!isCurrentUserAuthenticated()) {
+        if (!userService.isAuthenticated()) { // ✅ CHANGED - Use UserService
             return false;
         }
 
@@ -287,27 +188,27 @@ public class CommentService {
             UUID examUuid = UUID.fromString(examId);
             UUID commentUuid = UUID.fromString(commentId);
             
-            Exam exam = examRepository.findById(examUuid).orElse(null);
-            if (exam == null) {
+            // Verify exam exists
+            if (!examRepository.existsById(examUuid)) {
                 return false;
             }
 
-            String userEmail = getCurrentUserEmail();
-            
-            // Find the comment
-            if (exam.getComments() != null) {
-                for (Comment comment : exam.getComments()) {
-                    if (comment.getId() != null && comment.getId().equals(commentUuid)) {
-                        // User can modify if they own the comment
-                        // TODO: Add admin role checking here when we implement roles
-                        return comment.getUserEmail().equals(userEmail);
-                    }
-                }
+            // Find comment
+            Comment comment = commentRepository.findById(commentUuid).orElse(null);
+            if (comment == null) {
+                return false;
             }
             
-            return false;
+            // Verify comment belongs to this exam
+            if (!comment.getExamId().equals(examUuid)) {
+                return false;
+            }
+            
+            // Check ownership
+            String userEmail = userService.getAuthenticatedUser().email(); // ✅ CHANGED - Use UserService
+            return comment.getUserEmail().equals(userEmail);
+            
         } catch (Exception e) {
-            System.err.println("Error checking comment modify permission: " + e.getMessage());
             return false;
         }
     }

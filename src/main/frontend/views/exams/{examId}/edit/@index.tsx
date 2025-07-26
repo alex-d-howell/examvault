@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import type Exam from 'Frontend/generated/com/howell/examvault/base/domain/Exam';
 import { ExamService } from 'Frontend/generated/endpoints';
@@ -17,6 +17,19 @@ export default function EditView() {
     const { authenticated, authInitialized, loading: authLoading } = useAuth();
     const navigate = useNavigate();
 
+    // Combine loading states to reduce layout shifts
+    const [loadingState, setLoadingState] = useState<{
+        isLoading: boolean;
+        checkingAuth: boolean;
+        checkingPermissions: boolean;
+        error: string | null;
+    }>({
+        isLoading: true,
+        checkingAuth: true,
+        checkingPermissions: false,
+        error: null
+    });
+
     // Initialize exam with proper Exam model structure
     const [exam, setExam] = useState<Exam>({
         title: '',
@@ -26,10 +39,7 @@ export default function EditView() {
     });
 
     const [originalExam, setOriginalExam] = useState<Exam | null>(null);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [loadError, setLoadError] = useState<string | null>(null);
     const [canEdit, setCanEdit] = useState<boolean>(false);
-    const [checkingPermissions, setCheckingPermissions] = useState<boolean>(true);
 
     const [questionText, setQuestionText] = useState<string>('');
     const [options, setOptions] = useState<string[]>(['', '']); // Start with at least 2 options
@@ -44,122 +54,134 @@ export default function EditView() {
     const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
     const [isEditMode, setIsEditMode] = useState<boolean>(false);
 
-    // Validation states
-    const [isQuestionValid, setIsQuestionValid] = useState<boolean>(false);
-    const [isExamValid, setIsExamValid] = useState<boolean>(false);
-    const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
+    // Memoize expensive computations
+    const hasUnsavedChanges = useMemo(() => {
+        if (!originalExam || !exam) return false;
+        return JSON.stringify(originalExam) !== JSON.stringify(exam);
+    }, [originalExam, exam]);
 
-    // Check authentication and permissions
+    // Memoize selectedTags to prevent unnecessary re-renders of TagInput
+    const selectedTags = useMemo(() => {
+        return (exam.tags || []).filter((tag): tag is string => tag != null && tag !== undefined);
+    }, [exam.tags]);
+
+    // Memoized callback for tag changes to prevent infinite loops
+    const handleTagsChange = useCallback((tags: string[]) => {
+        setExam(prev => ({ ...prev, tags }));
+    }, []);
+
+    const isQuestionValid = useMemo(() => {
+        const hasValidOptions = options.length >= 2 && options.every(opt => opt?.trim());
+        const hasValidAnswer = correctAnswer.length > 0 &&
+            correctAnswer.every(answer => options.includes(answer));
+
+        return Boolean(questionText.trim() && hasValidOptions && hasValidAnswer);
+    }, [questionText, options, correctAnswer]);
+
+    const isExamValid = useMemo(() => {
+        return Boolean(
+            exam.title?.trim() &&
+            exam.description?.trim() &&
+            exam.questions &&
+            exam.questions.length > 0
+        ) && !isSubmitting;
+    }, [exam.title, exam.description, exam.questions, isSubmitting]);
+
+    // Combine auth and permission checking into single effect
     useEffect(() => {
-        const checkAuthAndPermissions = async () => {
-            if (!authInitialized || authLoading) return;
+        const initializeEdit = async () => {
+            // Wait for auth to initialize
+            if (!authInitialized || authLoading) {
+                setLoadingState(prev => ({ ...prev, checkingAuth: true }));
+                return;
+            }
 
+            // Check authentication
             if (!authenticated) {
-                console.log('User not authenticated, redirecting to login');
                 sessionStorage.setItem('redirectPath', `/exams/${examId}/edit`);
                 navigate('/login');
                 return;
             }
 
             if (!examId) {
-                setLoadError('No exam ID provided');
-                setIsLoading(false);
-                setCheckingPermissions(false);
+                setLoadingState({
+                    isLoading: false,
+                    checkingAuth: false,
+                    checkingPermissions: false,
+                    error: 'No exam ID provided'
+                });
                 return;
             }
 
             try {
-                setCheckingPermissions(true);
-                console.log('Checking if user can edit exam:', examId);
-                
-                const canModify = await ExamService.canUserModifyExam(examId);
-                console.log('User can edit exam:', canModify);
-                
+                setLoadingState(prev => ({ 
+                    ...prev, 
+                    checkingAuth: false, 
+                    checkingPermissions: true,
+                    error: null 
+                }));
+
+                // Check permissions and load exam in parallel
+                const [canModify, loadedExam] = await Promise.all([
+                    ExamService.canUserModifyExam(examId),
+                    ExamService.getExamById(examId)
+                ]);
+
                 if (!canModify) {
-                    setLoadError('You do not have permission to edit this exam. Only the exam creator can make changes.');
-                    setIsLoading(false);
-                    setCheckingPermissions(false);
+                    setLoadingState({
+                        isLoading: false,
+                        checkingAuth: false,
+                        checkingPermissions: false,
+                        error: 'You do not have permission to edit this exam. Only the exam creator can make changes.'
+                    });
                     return;
                 }
-                
+
+                if (!loadedExam) {
+                    setLoadingState({
+                        isLoading: false,
+                        checkingAuth: false,
+                        checkingPermissions: false,
+                        error: 'Exam not found'
+                    });
+                    return;
+                }
+
+                // Ensure tags array exists
+                if (!loadedExam.tags) {
+                    loadedExam.tags = [];
+                }
+
+                setExam(loadedExam);
+                setOriginalExam(JSON.parse(JSON.stringify(loadedExam))); // Deep copy for comparison
                 setCanEdit(true);
+                setLoadingState({
+                    isLoading: false,
+                    checkingAuth: false,
+                    checkingPermissions: false,
+                    error: null
+                });
+
             } catch (error) {
-                console.error('Error checking edit permissions:', error);
-                setLoadError('Failed to verify edit permissions. Please try again.');
-                setIsLoading(false);
-                setCheckingPermissions(false);
-                return;
-            } finally {
-                setCheckingPermissions(false);
+                console.error('Error during initialization:', error);
+                setLoadingState({
+                    isLoading: false,
+                    checkingAuth: false,
+                    checkingPermissions: false,
+                    error: 'Failed to load exam or verify permissions. Please try again.'
+                });
             }
         };
 
-        checkAuthAndPermissions();
+        initializeEdit();
     }, [authenticated, authInitialized, authLoading, examId, navigate]);
 
-    // Load exam data after permission check passes
-    useEffect(() => {
-        const loadExam = async () => {
-            if (!canEdit || !examId) return;
+    // Debounced callbacks to prevent rapid state changes
+    const addOption = useCallback((): void => {
+        setOptions(prev => [...prev, '']);
+    }, []);
 
-            try {
-                setIsLoading(true);
-                const loadedExam = await ExamService.getExamById(examId);
-
-                if (loadedExam) {
-                    // Ensure tags array exists
-                    if (!loadedExam.tags) {
-                        loadedExam.tags = [];
-                    }
-                    setExam(loadedExam);
-                    setOriginalExam(JSON.parse(JSON.stringify(loadedExam))); // Deep copy for comparison
-                } else {
-                    setLoadError('Exam not found');
-                }
-            } catch (error) {
-                console.error('Error loading exam:', error);
-                setLoadError('Failed to load exam. Please try again.');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        loadExam();
-    }, [canEdit, examId]);
-
-    // Check for unsaved changes
-    useEffect(() => {
-        if (originalExam && exam) {
-            const hasChanges = JSON.stringify(originalExam) !== JSON.stringify(exam);
-            setHasUnsavedChanges(hasChanges);
-        }
-    }, [exam, originalExam]);
-
-    // Update validation when state changes
-    useEffect(() => {
-        const hasValidOptions = options.length >= 2 && options.every(opt => opt?.trim());
-        const hasValidAnswer = correctAnswer.length > 0 &&
-            correctAnswer.every(answer => options.includes(answer));
-
-        const questionValid = Boolean(questionText.trim() && hasValidOptions && hasValidAnswer);
-        setIsQuestionValid(questionValid);
-    }, [questionText, options, correctAnswer, isMultipleAnswers]);
-
-    useEffect(() => {
-        const examValid = Boolean(
-            exam.title?.trim() &&
-            exam.description?.trim() &&
-            exam.questions &&
-            exam.questions.length > 0
-        );
-        setIsExamValid(examValid && !isSubmitting);
-    }, [exam, isSubmitting]);
-
-    const addOption = (): void => {
-        setOptions([...options, '']);
-    };
-
-    const removeOption = (index: number): void => {
+    const removeOption = useCallback((index: number): void => {
         if (options.length > 2) { // Keep at least 2 options
             const removedOption = options[index];
             const newOptions = options.filter((_, i) => i !== index);
@@ -168,9 +190,9 @@ export default function EditView() {
             // Remove from correctAnswer if it was selected
             setCorrectAnswer(prev => prev.filter(answer => answer !== removedOption));
         }
-    };
+    }, [options]);
 
-    const updateOption = (index: number, value: string): void => {
+    const updateOption = useCallback((index: number, value: string): void => {
         const oldValue = options[index];
         const newOptions = [...options];
         newOptions[index] = value;
@@ -180,24 +202,24 @@ export default function EditView() {
         setCorrectAnswer(prev =>
             prev.map(answer => answer === oldValue ? value : answer)
         );
-    };
+    }, [options]);
 
     // Handle correct answer selection for single answer questions
-    const handleSingleCorrectAnswer = (option: string): void => {
+    const handleSingleCorrectAnswer = useCallback((option: string): void => {
         setCorrectAnswer([option]);
-    };
+    }, []);
 
     // Handle correct answer selection for multiple answer questions
-    const toggleMultipleCorrectAnswer = (option: string): void => {
+    const toggleMultipleCorrectAnswer = useCallback((option: string): void => {
         setCorrectAnswer(prev =>
             prev.includes(option)
                 ? prev.filter(answer => answer !== option)
                 : [...prev, option]
         );
-    };
+    }, []);
 
     // Reset question form to initial state
-    const resetQuestionForm = (): void => {
+    const resetQuestionForm = useCallback((): void => {
         setQuestionText('');
         setOptions(['', '']);
         setCorrectAnswer([]);
@@ -205,10 +227,10 @@ export default function EditView() {
         setExplanation(''); // Reset explanation field
         setIsEditMode(false);
         setEditingQuestionIndex(null);
-    };
+    }, []);
 
     // Start editing a question
-    const startEditQuestion = (questionIndex: number): void => {
+    const startEditQuestion = useCallback((questionIndex: number): void => {
         const question = exam.questions?.[questionIndex];
         if (!question) return;
 
@@ -220,19 +242,21 @@ export default function EditView() {
         setEditingQuestionIndex(questionIndex);
         setIsEditMode(true);
 
-        // Scroll to question builder
-        document.querySelector('.exam-section:nth-child(3)')?.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-        });
-    };
+        // Scroll to question builder with a small delay to prevent jumpiness
+        setTimeout(() => {
+            document.querySelector('.exam-section:nth-child(3)')?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }, 100);
+    }, [exam.questions]);
 
     // Cancel editing and reset form
-    const cancelEdit = (): void => {
+    const cancelEdit = useCallback((): void => {
         resetQuestionForm();
-    };
+    }, [resetQuestionForm]);
 
-    const addQuestion = (): void => {
+    const addQuestion = useCallback((): void => {
         if (!isQuestionValid) return;
 
         const question = {
@@ -240,7 +264,7 @@ export default function EditView() {
             options: [...options],
             correctAnswers: [...correctAnswer],
             isMultipleAnswers: isMultipleAnswers,
-            explanation: explanation.trim() || undefined // Only include explanation if it has content
+            explanation: explanation.trim() || undefined, // Only include explanation if it has content
         };
 
         if (isEditMode && editingQuestionIndex !== null) {
@@ -263,10 +287,10 @@ export default function EditView() {
 
         // Reset question form
         resetQuestionForm();
-    };
+    }, [isQuestionValid, questionText, options, correctAnswer, isMultipleAnswers, explanation, isEditMode, editingQuestionIndex, resetQuestionForm]);
 
     // Remove question from exam
-    const removeQuestion = (questionIndex: number): void => {
+    const removeQuestion = useCallback((questionIndex: number): void => {
         setExam(prev => ({
             ...prev,
             questions: prev.questions?.filter((_, index) => index !== questionIndex) || []
@@ -279,24 +303,22 @@ export default function EditView() {
             // Adjust editing index if a question before the edited one was removed
             setEditingQuestionIndex(editingQuestionIndex - 1);
         }
-    };
+    }, [editingQuestionIndex, cancelEdit]);
 
     // Save exam changes
-    const saveExam = async (): Promise<void> => {
+    const saveExam = useCallback(async (): Promise<void> => {
         if (!isExamValid) return;
 
         setIsSubmitting(true);
         setSubmitMessage(null);
 
         try {
-            console.log('Saving exam:', exam);
             await ExamService.updateExam(exam);
 
             setSubmitMessage({ type: 'success', text: 'Exam updated successfully!' });
 
             // Update original exam to reflect saved state
             setOriginalExam(JSON.parse(JSON.stringify(exam)));
-            setHasUnsavedChanges(false);
         } catch (error: any) {
             console.error('Error updating exam:', error);
             
@@ -312,48 +334,47 @@ export default function EditView() {
         } finally {
             setIsSubmitting(false);
         }
-    };
+    }, [isExamValid, exam]);
 
     // Cancel all changes and revert to original
-    const cancelAllChanges = (): void => {
+    const cancelAllChanges = useCallback((): void => {
         if (originalExam) {
             setExam(JSON.parse(JSON.stringify(originalExam)));
             resetQuestionForm();
-            setHasUnsavedChanges(false);
             setSubmitMessage({ type: 'info', text: 'All changes have been reverted.' });
         }
-    };
+    }, [originalExam, resetQuestionForm]);
 
     // Navigate back to exam detail view
-    const goBack = (): void => {
+    const goBack = useCallback((): void => {
         if (hasUnsavedChanges) {
             setIsDialogOpen(true);
         } else {
             navigate(`/exams/${examId}`); // Go back to exam detail page
         }
-    };
+    }, [hasUnsavedChanges, navigate, examId]);
 
     // Handle confirm leave
-    const handleConfirmLeave = (): void => {
+    const handleConfirmLeave = useCallback((): void => {
         setIsDialogOpen(false);
         navigate(`/exams/${examId}`);
-    };
+    }, [navigate, examId]);
 
     // Handle cancel
-    const handleCancel = (): void => {
+    const handleCancel = useCallback((): void => {
         setIsDialogOpen(false);
-    };
+    }, []);
 
     // Show loading while checking auth and permissions
-    if (!authInitialized || authLoading || checkingPermissions || (isLoading && !loadError)) {
+    if (loadingState.checkingAuth || loadingState.checkingPermissions || loadingState.isLoading) {
         return (
             <div className="exam-edit-container">
                 <div className="loading-state">
                     <div className="spinner"></div>
                     <p>
-                        {!authInitialized || authLoading 
+                        {loadingState.checkingAuth 
                             ? 'Checking authentication...' 
-                            : checkingPermissions 
+                            : loadingState.checkingPermissions 
                                 ? 'Verifying edit permissions...' 
                                 : 'Loading exam...'}
                     </p>
@@ -362,13 +383,13 @@ export default function EditView() {
         );
     }
 
-    if (loadError) {
+    if (loadingState.error) {
         return (
             <div className="exam-edit-container">
                 <div className="error-state">
                     <Icon icon="vaadin:exclamation-circle" className="error-icon" />
                     <h2>Access Denied</h2>
-                    <p>{loadError}</p>
+                    <p>{loadingState.error}</p>
                     <div className="error-actions">
                         <button onClick={() => navigate('/exams')} className="btn-primary">
                             Browse Exams
@@ -435,14 +456,14 @@ export default function EditView() {
                     />
                 </div>
 
-                {/* Tags Section - Using new consolidated component */}
-                [<TagInput
-                    selectedTags={(exam.tags || []).filter((tag): tag is string => tag != null && tag !== undefined)}
-                    onTagsChange={(tags) => setExam(prev => ({ ...prev, tags }))}
+                {/* Tags Section - Using fixed component */}
+                <TagInput
+                    selectedTags={selectedTags}
+                    onTagsChange={handleTagsChange}
                     label="Tags (Optional)"
                     hint="Add tags to help others find your exam. Press Enter to add a tag."
                     maxTags={10}
-                />]
+                />
             </div>
 
             {/* Question Builder */}

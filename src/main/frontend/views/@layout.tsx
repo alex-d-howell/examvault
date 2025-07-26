@@ -51,7 +51,6 @@ function LayoutContent() {
       );
       
       if (isProtectedRoute && currentPath !== '/login') {
-        console.log('Layout: Unauthenticated user on protected route, redirecting to login');
         sessionStorage.setItem('redirectPath', currentPath);
         navigate('/login', { replace: true });
         return;

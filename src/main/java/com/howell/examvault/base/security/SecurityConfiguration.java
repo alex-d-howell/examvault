@@ -23,7 +23,6 @@ public class SecurityConfiguration extends VaadinWebSecurity {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        System.out.println("=== Configuring Security ===");
         
         // Apply Vaadin's default security configuration
         super.configure(http);
@@ -60,11 +59,6 @@ public class SecurityConfiguration extends VaadinWebSecurity {
                 HttpServletResponse response, 
                 Authentication authentication) throws IOException, ServletException {
             
-            System.out.println("=== OAuth2 SUCCESS HANDLER ===");
-            System.out.println("OAuth2 login successful for user: " + authentication.getName());
-            System.out.println("Authentication type: " + authentication.getClass().getSimpleName());
-            System.out.println("Principal type: " + authentication.getPrincipal().getClass().getSimpleName());
-            
             try {
                 // Check if there's a saved redirect path in the session
                 String redirectPath = (String) request.getSession().getAttribute("redirectPath");
@@ -94,11 +88,7 @@ public class SecurityConfiguration extends VaadinWebSecurity {
                 HttpServletRequest request, 
                 HttpServletResponse response, 
                 AuthenticationException exception) throws IOException, ServletException {
-            
-            System.out.println("=== OAuth2 FAILURE HANDLER ===");
-            System.out.println("OAuth2 login failed: " + exception.getMessage());
-            System.out.println("Exception type: " + exception.getClass().getSimpleName());
-            
+                        
             try {
                 // Clear any potentially problematic session data
                 if (request.getSession(false) != null) {

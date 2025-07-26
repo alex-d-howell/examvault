@@ -1,0 +1,89 @@
+# ===== TEST PROFILE CONFIGURATION =====
+# Configuration for running tests
+# Automatically used when running: mvn test
+
+# ===== TEST DATABASE =====
+# Note: TestContainers will override these settings in integration tests
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+    hikari:
+      maximum-pool-size: 2  # Smaller connection pool for tests
+      minimum-idle: 1
+      connection-timeout: 5000
+
+  # ===== TEST H2 SETTINGS =====
+  h2:
+    console:
+      enabled: false  # Disabled in tests
+
+  # ===== TEST JPA SETTINGS =====
+  jpa:
+    hibernate:
+      ddl-auto: create-drop  # Always recreate schema for tests
+    show-sql: false  # Keep test output clean
+    properties:
+      hibernate:
+        format_sql: false
+        generate_statistics: false
+
+  # ===== DISABLE FLYWAY IN TESTS =====
+  flyway:
+    enabled: false  # TestContainers handle schema creation
+
+  # ===== TEST SECURITY SETTINGS =====
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            # Test OAuth settings loaded from secrets.yml
+            redirect-uri: http://localhost/login/oauth2/code/google
+
+# ===== TEST LOGGING =====
+# Keep logging quiet during tests
+logging:
+  level:
+    root: WARN
+    com.howell.examvault: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+    org.flywaydb: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    org.testcontainers: WARN
+    com.github.dockerjava: WARN
+  pattern:
+    console: "%d{HH:mm:ss} %-5level %logger{36} - %msg%n"
+
+# ===== TEST-SPECIFIC SETTINGS =====
+app:
+  debug:
+    enabled: false
+  
+  security:
+    cors:
+      allowed-origins:
+        - http://localhost
+        - http://localhost:8080
+
+# ===== TEST ACTUATOR =====
+management:
+  endpoints:
+    web:
+      exposure:
+        include: 
+          - health
+          - info
+  endpoint:
+    health:
+      show-details: never
+
+# ===== TEST SERVER SETTINGS =====
+server:
+  servlet:
+    session:
+      cookie:
+        secure: false  # No HTTPS in tests

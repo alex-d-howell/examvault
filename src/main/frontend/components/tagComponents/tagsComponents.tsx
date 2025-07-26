@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTags } from '../../hooks/useTags';
+import { useTagInput, useTags } from '../../hooks/useTags';
 
 // Props for the main tag input component
 interface TagInputProps {
@@ -30,16 +30,16 @@ interface TagChipProps {
 }
 
 // Tag chip component
-export const TagChip: React.FC<TagChipProps> = ({ 
-    tag, 
-    onRemove, 
-    onClick, 
+export const TagChip: React.FC<TagChipProps> = ({
+    tag,
+    onRemove,
+    onClick,
     variant = 'default',
     size = 'medium'
 }) => {
     const sizeClass = size === 'small' ? 'tag-chip-small' : 'tag-chip-medium';
-    const variantClass = variant === 'clickable' ? 'tag-chip-clickable' : 
-                        variant === 'removable' ? 'tag-chip-removable' : 'tag-chip-default';
+    const variantClass = variant === 'clickable' ? 'tag-chip-clickable' :
+        variant === 'removable' ? 'tag-chip-removable' : 'tag-chip-default';
 
     const handleClick = () => {
         if (onClick && variant === 'clickable') {
@@ -55,7 +55,7 @@ export const TagChip: React.FC<TagChipProps> = ({
     };
 
     return (
-        <span 
+        <span
             className={`tag-chip ${sizeClass} ${variantClass}`}
             onClick={handleClick}
             style={{ cursor: variant === 'clickable' ? 'pointer' : 'default' }}
@@ -76,11 +76,11 @@ export const TagChip: React.FC<TagChipProps> = ({
 };
 
 // Tag display component (read-only)
-export const TagDisplay: React.FC<TagDisplayProps> = ({ 
-    tags, 
-    onTagClick, 
-    maxVisible, 
-    className = '' 
+export const TagDisplay: React.FC<TagDisplayProps> = ({
+    tags,
+    onTagClick,
+    maxVisible,
+    className = ''
 }) => {
     if (!tags || tags.length === 0) return null;
 
@@ -116,24 +116,41 @@ export const TagInput: React.FC<TagInputProps> = ({
     label,
     hint
 }) => {
-    const { useTagInput } = useTags();
-    const tagInput = useTagInput();
+    const { tags, addTag: addToGlobalCache } = useTags();
+    const tagInput = useTagInput(selectedTags); // Pass selectedTags to hook
 
-    // Sync with parent state
-    React.useEffect(() => {
-        if (JSON.stringify(tagInput.selectedTags) !== JSON.stringify(selectedTags)) {
-            tagInput.setSelectedTags(selectedTags);
+    const canAddMoreTags = selectedTags.length < maxTags;
+
+    // Handle adding a tag
+    const handleAddTag = (tag: string) => {
+        const trimmed = tag.trim();
+        if (tagInput.isValidTag(trimmed) && !selectedTags.includes(trimmed)) {
+            // Add to global cache if it's a new tag
+            if (!tags.includes(trimmed)) {
+                addToGlobalCache(trimmed);
+            }
+
+            onTagsChange([...selectedTags, trimmed]);
+            tagInput.clearTagInput();
         }
-    }, [selectedTags]);
+    };
 
-    // Notify parent of changes
-    React.useEffect(() => {
-        if (JSON.stringify(tagInput.selectedTags) !== JSON.stringify(selectedTags)) {
-            onTagsChange(tagInput.selectedTags);
+    // Handle removing a tag
+    const handleRemoveTag = (tagToRemove: string) => {
+        onTagsChange(selectedTags.filter(tag => tag !== tagToRemove));
+    };
+
+    // Modified keyboard handler
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (tagInput.tagInput.trim()) {
+                handleAddTag(tagInput.tagInput.trim());
+            }
+        } else if (e.key === 'Escape') {
+            tagInput.setShowTagSuggestions(false);
         }
-    }, [tagInput.selectedTags]);
-
-    const canAddMoreTags = tagInput.selectedTags.length < maxTags;
+    };
 
     return (
         <div className={`tag-input-component ${className}`}>
@@ -143,16 +160,16 @@ export const TagInput: React.FC<TagInputProps> = ({
                     {hint && <span className="form-label-hint">{hint}</span>}
                 </label>
             )}
-            
+
             {/* Display selected tags */}
-            {tagInput.selectedTags.length > 0 && (
+            {selectedTags.length > 0 && (
                 <div className="selected-tags">
-                    {tagInput.selectedTags.map((tag, index) => (
+                    {selectedTags.map((tag, index) => (
                         <TagChip
                             key={index}
                             tag={tag}
                             variant="removable"
-                            onRemove={tagInput.removeTagFromSelection}
+                            onRemove={handleRemoveTag}
                         />
                     ))}
                 </div>
@@ -165,14 +182,14 @@ export const TagInput: React.FC<TagInputProps> = ({
                         type="text"
                         value={tagInput.tagInput}
                         onChange={(e) => tagInput.setTagInput(e.target.value)}
-                        onKeyDown={tagInput.handleTagInputKeyDown}
+                        onKeyDown={handleKeyDown}
                         onFocus={tagInput.handleTagInputFocus}
                         onBlur={tagInput.handleTagInputBlur}
                         className="form-input tag-input"
                         placeholder={placeholder}
                         maxLength={50}
                     />
-                    
+
                     {/* Tag suggestions */}
                     {tagInput.showTagSuggestions && (
                         <div className="tag-suggestions">
@@ -180,30 +197,30 @@ export const TagInput: React.FC<TagInputProps> = ({
                                 <button
                                     key={index}
                                     type="button"
-                                    onClick={() => tagInput.addTagToSelection(tag)}
+                                    onClick={() => handleAddTag(tag)}
                                     className="tag-suggestion"
                                 >
                                     {tag}
                                 </button>
                             ))}
-                            {tagInput.tagInput.trim() && 
-                             tagInput.isValidTag(tagInput.tagInput.trim()) &&
-                             !tagInput.filteredTags.includes(tagInput.tagInput.trim()) && (
-                                <button
-                                    type="button"
-                                    onClick={() => tagInput.addTagToSelection(tagInput.tagInput.trim())}
-                                    className="tag-suggestion tag-suggestion-new"
-                                >
-                                    Create "{tagInput.tagInput.trim()}"
-                                </button>
-                            )}
+                            {tagInput.tagInput.trim() &&
+                                tagInput.isValidTag(tagInput.tagInput.trim()) &&
+                                !tagInput.filteredTags.includes(tagInput.tagInput.trim()) && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleAddTag(tagInput.tagInput.trim())}
+                                        className="tag-suggestion tag-suggestion-new"
+                                    >
+                                        Create "{tagInput.tagInput.trim()}"
+                                    </button>
+                                )}
                         </div>
                     )}
                 </div>
             )}
-            
+
             <div className="tag-help-text">
-                {tagInput.selectedTags.length}/{maxTags} tags added
+                {selectedTags.length}/{maxTags} tags added
             </div>
         </div>
     );
@@ -221,36 +238,53 @@ export const TagSearch: React.FC<TagSearchProps> = ({
     onTagsChange,
     className = ''
 }) => {
-    const { useTagInput } = useTags();
-    const tagInput = useTagInput();
+    const { tags, addTag: addToGlobalCache } = useTags();
+    const tagInput = useTagInput(selectedTags); // Pass selectedTags to hook
 
-    // Sync with parent state
-    React.useEffect(() => {
-        if (JSON.stringify(tagInput.selectedTags) !== JSON.stringify(selectedTags)) {
-            tagInput.setSelectedTags(selectedTags);
-        }
-    }, [selectedTags]);
+    // Handle adding a tag
+    const handleAddTag = (tag: string) => {
+        const trimmed = tag.trim();
+        if (tagInput.isValidTag(trimmed) && !selectedTags.includes(trimmed)) {
+            // Add to global cache if it's a new tag
+            if (!tags.includes(trimmed)) {
+                addToGlobalCache(trimmed);
+            }
 
-    // Notify parent of changes
-    React.useEffect(() => {
-        if (JSON.stringify(tagInput.selectedTags) !== JSON.stringify(selectedTags)) {
-            onTagsChange(tagInput.selectedTags);
+            onTagsChange([...selectedTags, trimmed]);
+            tagInput.clearTagInput();
         }
-    }, [tagInput.selectedTags]);
+    };
+
+    // Handle removing a tag
+    const handleRemoveTag = (tagToRemove: string) => {
+        onTagsChange(selectedTags.filter(tag => tag !== tagToRemove));
+    };
+
+    // Modified keyboard handler
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (tagInput.tagInput.trim()) {
+                handleAddTag(tagInput.tagInput.trim());
+            }
+        } else if (e.key === 'Escape') {
+            tagInput.setShowTagSuggestions(false);
+        }
+    };
 
     return (
         <div className={`tag-search-section ${className}`}>
             <label className="tag-search-label">Filter by Tags:</label>
-            
+
             {/* Display selected tags */}
-            {tagInput.selectedTags.length > 0 && (
+            {selectedTags.length > 0 && (
                 <div className="selected-tags">
-                    {tagInput.selectedTags.map((tag, index) => (
+                    {selectedTags.map((tag, index) => (
                         <TagChip
                             key={index}
                             tag={tag}
                             variant="removable"
-                            onRemove={tagInput.removeTagFromSelection}
+                            onRemove={handleRemoveTag}
                             size="small"
                         />
                     ))}
@@ -263,13 +297,13 @@ export const TagSearch: React.FC<TagSearchProps> = ({
                     type="text"
                     value={tagInput.tagInput}
                     onChange={(e) => tagInput.setTagInput(e.target.value)}
-                    onKeyDown={tagInput.handleTagInputKeyDown}
+                    onKeyDown={handleKeyDown}
                     onFocus={tagInput.handleTagInputFocus}
                     onBlur={tagInput.handleTagInputBlur}
                     className="tag-search-input"
                     placeholder="Add tags to filter..."
                 />
-                
+
                 {/* Tag suggestions */}
                 {tagInput.showTagSuggestions && (
                     <div className="tag-search-suggestions">
@@ -277,7 +311,7 @@ export const TagSearch: React.FC<TagSearchProps> = ({
                             <button
                                 key={index}
                                 type="button"
-                                onClick={() => tagInput.addTagToSelection(tag)}
+                                onClick={() => handleAddTag(tag)}
                                 className="tag-search-suggestion"
                             >
                                 {tag}
