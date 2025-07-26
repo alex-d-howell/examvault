@@ -1,28 +1,39 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router';
 import type Exam from 'Frontend/generated/com/howell/examvault/base/domain/Exam';
 import { ExamService } from 'Frontend/generated/endpoints';
 import { Icon } from '@vaadin/react-components';
+import { useAuth } from 'Frontend/hooks/useAuth.js';
 import './create.css';
+import { TagInput } from 'Frontend/components/tagComponents/tagsComponents';
 
 interface SubmitMessage {
-  type: 'success' | 'error';
+  type: 'success' | 'error' | 'warning';
   text: string;
 }
 
 export default function CreateView() {
+  const { authenticated, user, authInitialized, loading } = useAuth();
+  const navigate = useNavigate();
+
   // Initialize exam with proper Exam model structure
   const [exam, setExam] = useState<Exam>({
     title: '',
     description: '',
-    questions: []
+    questions: [],
+    tags: []
   });
 
   const [questionText, setQuestionText] = useState<string>('');
   const [options, setOptions] = useState<string[]>(['', '']); // Start with at least 2 options
   const [correctAnswer, setCorrectAnswer] = useState<string[]>([]); // Now always an array
   const [isMultipleAnswers, setIsMultipleAnswers] = useState<boolean>(false);
+  const [explanation, setExplanation] = useState<string>(''); // New explanation field
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitMessage, setSubmitMessage] = useState<SubmitMessage | null>(null);
+  
+  // Enhanced submission state tracking
+  const [submissionStage, setSubmissionStage] = useState<'idle' | 'saving' | 'success' | 'navigating'>('idle');
 
   // Editing states
   const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
@@ -31,6 +42,14 @@ export default function CreateView() {
   // Validation states
   const [isQuestionValid, setIsQuestionValid] = useState<boolean>(false);
   const [isExamValid, setIsExamValid] = useState<boolean>(false);
+
+  // Check authentication and redirect if necessary
+  useEffect(() => {
+    if (authInitialized && !loading && !authenticated) {
+      sessionStorage.setItem('redirectPath', '/exams/create');
+      navigate('/login');
+    }
+  }, [authenticated, authInitialized, loading, navigate]);
 
   // Update validation when state changes
   useEffect(() => {
@@ -49,8 +68,39 @@ export default function CreateView() {
       exam.questions &&
       exam.questions.length > 0
     );
-    setIsExamValid(examValid && !isSubmitting);
-  }, [exam, isSubmitting]);
+    setIsExamValid(examValid && !isSubmitting && authenticated);
+  }, [exam, isSubmitting, authenticated]);
+
+  // Show loading while checking authentication
+  if (!authInitialized || loading) {
+    return (
+      <div className="exam-create-container">
+        <div className="loading-state">
+          <div className="spinner"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show authentication required message
+  if (!authenticated) {
+    return (
+      <div className="exam-create-container">
+        <div className="auth-required">
+          <Icon icon="vaadin:lock" className="auth-icon" />
+          <h2>Authentication Required</h2>
+          <p>You need to be signed in to create exams.</p>
+          <button
+            onClick={() => navigate('/login')}
+            className="btn-primary enabled"
+          >
+            Sign In
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const addOption = (): void => {
     setOptions([...options, '']);
@@ -99,6 +149,7 @@ export default function CreateView() {
     setOptions(['', '']);
     setCorrectAnswer([]);
     setIsMultipleAnswers(false);
+    setExplanation(''); // Reset explanation field
     setIsEditMode(false);
     setEditingQuestionIndex(null);
   };
@@ -112,11 +163,12 @@ export default function CreateView() {
     setOptions(question.options ? question.options.filter((opt): opt is string => opt != null) : ['', '']);
     setCorrectAnswer(question.correctAnswers ? question.correctAnswers.filter((ans): ans is string => ans != null) : []);
     setIsMultipleAnswers(question.isMultipleAnswers || false);
+    setExplanation(question.explanation || ''); // Load explanation for editing
     setEditingQuestionIndex(questionIndex);
     setIsEditMode(true);
 
     // Scroll to question builder
-    document.querySelector('.exam-section:nth-child(3)')?.scrollIntoView({
+    document.querySelector('.exam-section:nth-child(5)')?.scrollIntoView({
       behavior: 'smooth',
       block: 'start'
     });
@@ -134,7 +186,8 @@ export default function CreateView() {
       questionText: questionText,
       options: [...options],
       correctAnswers: [...correctAnswer],
-      isMultipleAnswers: isMultipleAnswers
+      isMultipleAnswers: isMultipleAnswers,
+      explanation: explanation.trim() || undefined // Only include explanation if it has content
     };
 
     if (isEditMode && editingQuestionIndex !== null) {
@@ -175,36 +228,118 @@ export default function CreateView() {
     }
   };
 
-  // Submit exam to backend
+  // Enhanced submit exam function with smooth transitions
   const submitExam = async (): Promise<void> => {
-    if (!isExamValid) return;
+    if (!isExamValid || !authenticated) return;
 
     setIsSubmitting(true);
+    setSubmissionStage('saving');
     setSubmitMessage(null);
 
     try {
-      console.log(exam)
-      await ExamService.saveExam(exam);
 
-      setSubmitMessage({ type: 'success', text: 'Exam created successfully!' });
+      // Validate exam data before sending
+      if (!exam.title?.trim()) {
+        throw new Error('Exam title is required');
+      }
+      if (!exam.description?.trim()) {
+        throw new Error('Exam description is required');
+      }
+      if (!exam.questions || exam.questions.length === 0) {
+        throw new Error('At least one question is required');
+      }
 
-      // Reset form
-      setExam({ title: '', description: '', questions: [] });
-      resetQuestionForm();
-    } catch (error) {
-      console.error('Error creating exam:', error);
+      // Ensure all questions have valid data
+      for (let i = 0; i < exam.questions.length; i++) {
+        const question = exam.questions[i];
+        if (!question?.questionText?.trim()) {
+          throw new Error(`Question ${i + 1} text is required`);
+        }
+        if (!question.options || question.options.length < 2) {
+          throw new Error(`Question ${i + 1} must have at least 2 options`);
+        }
+        if (!question.correctAnswers || question.correctAnswers.length === 0) {
+          throw new Error(`Question ${i + 1} must have at least one correct answer`);
+        }
+      }
+
+      // Save the exam with enhanced user feedback
+      ExamService.saveExam(exam).then((createdExam) => {
+        setSubmissionStage('success');
+        setSubmitMessage({
+          type: 'success',
+          text: 'Exam created successfully! Opening your new exam...'
+        });
+
+        // Quick transition to keep things feeling snappy
+        setTimeout(() => {
+          setSubmissionStage('navigating');
+          
+          // Navigate after a brief moment to show the navigating state
+          setTimeout(() => {
+            if (createdExam && createdExam.id) {
+              navigate(`/exams/${createdExam.id}`);
+            } else {
+              console.warn('Created exam ID not available, redirecting to exams list');
+              navigate('/exams');
+            }
+          }, 200);
+        }, 400);
+        
+      }).catch((error: any) => {
+        setSubmissionStage('idle');
+        console.error('Error creating exam:', error);
+
+        let errorMessage = 'Failed to create exam. Please try again.';
+
+        if (error.message) {
+          if (error.message.includes('Authentication required')) {
+            errorMessage = 'Authentication error. Please sign out and sign back in.';
+            setSubmitMessage({ type: 'warning', text: errorMessage });
+            setTimeout(() => {
+              navigate('/login');
+            }, 2000);
+            return;
+          } else if (error.message.includes('required') || error.message.includes('must have')) {
+            errorMessage = error.message;
+          } else {
+            errorMessage = `Error: ${error.message}`;
+          }
+        }
+
+        setSubmitMessage({
+          type: 'error',
+          text: errorMessage
+        });
+      }).finally(() => {
+        // Only reset if we're not navigating away
+        if (submissionStage !== 'navigating') {
+          setIsSubmitting(false);
+        }
+      });
+
+    } catch (error: any) {
+      setSubmissionStage('idle');
+      console.error('Error validating exam:', error);
       setSubmitMessage({
         type: 'error',
-        text: 'Failed to create exam. Please try again.'
+        text: error.message || 'Failed to create exam. Please try again.'
       });
-    } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
     <div className="exam-create-container">
-      <h1>Create New Exam</h1>
+      <div className="create-header">
+        <h1>Create New Exam</h1>
+        {user && (
+          <div className="user-info">
+            <Icon icon="vaadin:user" />
+            <span>Creating as {user.name}</span>
+          </div>
+        )}
+      </div>
 
       {/* Exam Details */}
       <div className="exam-section">
@@ -212,7 +347,7 @@ export default function CreateView() {
 
         <div className="form-group">
           <label className="form-label">
-            Exam Title
+            Exam Title *
           </label>
           <input
             type="text"
@@ -225,7 +360,7 @@ export default function CreateView() {
 
         <div className="form-group">
           <label className="form-label">
-            Description
+            Description *
           </label>
           <textarea
             value={exam.description || ''}
@@ -235,6 +370,15 @@ export default function CreateView() {
             placeholder="Enter exam description..."
           />
         </div>
+
+        {/* Tags Section - Using new consolidated component */}
+        <TagInput
+          selectedTags={(exam.tags || []).filter((tag): tag is string => tag != null && tag !== undefined)}
+          onTagsChange={(tags) => setExam(prev => ({ ...prev, tags }))}
+          label="Tags (Optional)"
+          hint="Add tags to help others find your exam. Press Enter to add a tag."
+          maxTags={10}
+        />
       </div>
 
       {/* Question Builder */}
@@ -248,7 +392,7 @@ export default function CreateView() {
 
         <div className="form-group">
           <label className="form-label">
-            Question Text
+            Question Text *
           </label>
           <textarea
             value={questionText}
@@ -262,7 +406,7 @@ export default function CreateView() {
         <div className="form-group">
           <div className="option-header">
             <label className="form-label">
-              Answer Options
+              Answer Options *
             </label>
             <button
               onClick={addOption}
@@ -327,6 +471,25 @@ export default function CreateView() {
             />
             <span>Allow multiple correct answers</span>
           </label>
+        </div>
+
+        {/* New Explanation Field */}
+        <div className="form-group">
+          <label className="form-label">
+            Explanation (Optional)
+            <span className="form-label-hint">Provide additional context or detailed explanation for this question</span>
+          </label>
+          <textarea
+            value={explanation}
+            onChange={(e) => setExplanation(e.target.value)}
+            className="form-textarea explanation-textarea"
+            rows={3}
+            placeholder="Enter detailed explanation, background information, or context that will help learners understand this question better..."
+            maxLength={1000}
+          />
+          <div className="character-counter">
+            {explanation.length}/1000 characters
+          </div>
         </div>
 
         <div className="question-actions">
@@ -404,6 +567,17 @@ export default function CreateView() {
                     );
                   })}
                 </ul>
+
+                {/* Display explanation if available */}
+                {question?.explanation && (
+                  <div className="question-explanation-preview">
+                    <div className="explanation-label">
+                      <Icon icon="vaadin:info-circle" className="explanation-icon" />
+                      <span>Explanation:</span>
+                    </div>
+                    <p className="explanation-text">{question.explanation}</p>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -414,20 +588,34 @@ export default function CreateView() {
       <div className="submit-section">
         {submitMessage && (
           <div className={`message ${submitMessage.type}`}>
+            <Icon
+              icon={submitMessage.type === 'success' ? 'vaadin:check-circle' :
+                submitMessage.type === 'warning' ? 'vaadin:warning' : 'vaadin:exclamation-circle'}
+            />
             {submitMessage.text}
           </div>
         )}
 
         <button
           onClick={submitExam}
-          disabled={!isExamValid || isEditMode}
-          className={`btn-submit ${(isExamValid && !isEditMode) ? 'enabled' : 'disabled'}`}
+          disabled={!isExamValid || isEditMode || submissionStage !== 'idle'}
+          className={`btn-submit ${(isExamValid && !isEditMode && submissionStage !== 'navigating') ? 'enabled' : 'disabled'}`}
           type="button"
         >
-          {isSubmitting ? (
+          {submissionStage === 'saving' ? (
             <>
               <div className="spinner"></div>
               Creating Exam...
+            </>
+          ) : submissionStage === 'success' ? (
+            <>
+              <Icon className='submit-check success-pulse' icon="vaadin:check" />
+              Exam Created!
+            </>
+          ) : submissionStage === 'navigating' ? (
+            <>
+              <Icon className='submit-check navigate-bounce' icon="vaadin:arrow-right" />
+              Opening Exam...
             </>
           ) : (
             <>
@@ -441,6 +629,13 @@ export default function CreateView() {
           <p className="edit-warning">
             <Icon icon="vaadin:info-circle" />
             Complete or cancel the current edit before submitting the exam.
+          </p>
+        )}
+
+        {!authenticated && (
+          <p className="auth-warning">
+            <Icon icon="vaadin:lock" />
+            You must be signed in to create exams.
           </p>
         )}
       </div>

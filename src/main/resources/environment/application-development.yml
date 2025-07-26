@@ -1,0 +1,59 @@
+# ===== DEVELOPMENT PROFILE CONFIGURATION =====
+# Override settings for development environment
+# Run with: mvn spring-boot:run -Dspring.profiles.active=development
+
+# ===== DEVELOPMENT JPA SETTINGS =====
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop  # More aggressive schema management for development
+    show-sql: true  # Show SQL queries in development
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+
+# ===== DEVELOPMENT LOGGING =====
+logging:
+  level:
+    com.howell.examvault: TRACE  # Very verbose logging for development
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: DEBUG
+    org.springframework.web: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# ===== DEVELOPMENT SERVER SETTINGS =====
+server:
+  servlet:
+    session:
+      cookie:
+        secure: false  # Allow non-HTTPS in development
+
+# ===== DEVELOPMENT-SPECIFIC FEATURES =====
+app:
+  debug:
+    enabled: true
+    log-requests: true
+  
+  security:
+    cors:
+      allowed-origins:
+        - http://localhost:3000
+        - http://localhost:8080
+        - http://localhost:3001  # Additional dev ports
+        - http://127.0.0.1:3000
+        - http://127.0.0.1:8080
+
+# ===== DEVELOPMENT ACTUATOR =====
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"  # Expose all actuator endpoints in development
+  endpoint:
+    health:
+      show-details: always
+    env:
+      show-values: always

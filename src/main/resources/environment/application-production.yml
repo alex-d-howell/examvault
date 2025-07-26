@@ -1,0 +1,125 @@
+# ===== PRODUCTION PROFILE CONFIGURATION =====
+# Configuration for production environment
+# Run with: mvn spring-boot:run -Dspring.profiles.active=production
+
+# ===== PRODUCTION DATABASE =====
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/examvault}
+    # Credentials loaded from secrets.yml or environment variables
+    hikari:
+      maximum-pool-size: 20  # Larger connection pool for production
+      minimum-idle: 10
+      connection-timeout: 30000
+      leak-detection-threshold: 60000
+      validation-timeout: 5000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  # ===== PRODUCTION JPA SETTINGS =====
+  jpa:
+    hibernate:
+      ddl-auto: validate  # NEVER auto-modify production schema!
+    show-sql: false  # No SQL logging in production
+    properties:
+      hibernate:
+        format_sql: false
+        generate_statistics: false  # Disable stats for performance
+        use_sql_comments: false
+        order_inserts: true
+        order_updates: true
+        jdbc:
+          batch_size: 50  # Larger batch size for production
+
+  # ===== PRODUCTION FLYWAY SETTINGS =====
+  flyway:
+    validate-on-migrate: true  # Strict validation in production
+    clean-disabled: true  # NEVER allow clean in production
+    baseline-on-migrate: false  # Assume clean production setup
+
+# ===== PRODUCTION LOGGING =====
+logging:
+  level:
+    root: WARN
+    com.howell.examvault: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+    org.flywaydb: INFO
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+  
+  # ===== PRODUCTION LOG FILES =====
+  file:
+    name: /var/log/examvault/application.log
+    max-size: 10MB
+    max-history: 30
+  
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - %msg%n"
+
+# ===== PRODUCTION SERVER SETTINGS =====
+server:
+  port: ${PORT:8080}
+  servlet:
+    session:
+      cookie:
+        secure: true  # REQUIRE HTTPS in production
+        same-site: strict
+        http-only: true
+  
+  # ===== PRODUCTION ERROR HANDLING =====
+  error:
+    include-message: never  # Don't expose error details
+    include-binding-errors: never
+    include-stacktrace: never
+
+# ===== PRODUCTION SECURITY =====
+app:
+  debug:
+    enabled: false  # No debug features in production
+  
+  comments:
+    enable-moderation: true  # Enable comment moderation in production
+  
+  security:
+    cors:
+      allowed-origins:
+        - ${CORS_ALLOWED_ORIGINS:https://yourdomain.com}
+
+# ===== PRODUCTION ACTUATOR =====
+management:
+  endpoints:
+    web:
+      exposure:
+        include: 
+          - health
+          - info
+          - metrics
+          - prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when_authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  
+  # ===== PRODUCTION HEALTH CHECKS =====
+  health:
+    diskspace:
+      enabled: true
+      threshold: 10GB
+    db:
+      enabled: true
+
+# ===== PRODUCTION PERFORMANCE =====
+spring:
+  jpa:
+    properties:
+      hibernate:
+        connection:
+          provider_disables_autocommit: true
+        cache:
+          use_second_level_cache: false  # Disable unless specifically needed
+          use_query_cache: false

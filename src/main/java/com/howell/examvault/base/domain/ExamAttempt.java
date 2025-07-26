@@ -34,8 +34,7 @@ public class ExamAttempt implements Serializable {
     @JoinColumn(name = "exam_id")
     private Exam exam;
 
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
-    @JoinColumn(name = "selected_answers_id")
+    @OneToMany(mappedBy = "examAttempt", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private List<Answer> selectedAnswers;
 
     private int numberCorrect;
@@ -54,6 +53,10 @@ public class ExamAttempt implements Serializable {
 
     public UUID getId() {
         return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
     }
 
     public String getUserEmail() {

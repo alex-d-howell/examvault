@@ -8,70 +8,56 @@ export function authHook() {
     const [user, setUser] = useState<UserDetails | null>(null);
     const [authInitialized, setAuthInitialized] = useState(false);
     const [loading, setLoading] = useState(true);
-    
+
     // Use ref to track if auth check is in progress
     const isCheckingAuth = useRef(false);
     const navigate = useNavigate();
 
     const checkAuth = useCallback(async () => {
-        console.log('=== checkAuth START ===');
-        
+
         // Prevent multiple simultaneous auth checks
         if (isCheckingAuth.current) {
-            console.log('Auth check already in progress, skipping...');
             return;
         }
 
         try {
             isCheckingAuth.current = true;
             setLoading(true);
-            console.log('Starting auth check...');
-            
+
             // Check if user is authenticated using BrowserCallable
-            console.log('Calling UserService.isAuthenticated()...');
             const isAuthenticated = await UserService.isAuthenticated();
-            console.log('Authentication result:', isAuthenticated);
-            
+
             if (isAuthenticated) {
-                console.log('Getting user data...');
                 const userData = await UserService.getAuthenticatedUser();
-                console.log('User data received:', userData);
-                
+
                 if (userData) {
-                    console.log('Setting authenticated=true with user data');
                     setAuthenticated(true);
                     setUser(userData);
                 } else {
-                    console.warn('Authentication passed but no user data');
                     setAuthenticated(false);
                     setUser(null);
                 }
             } else {
-                console.log('User is not authenticated');
                 setAuthenticated(false);
                 setUser(null);
             }
-            
+
         } catch (error) {
-            console.error('Authentication check failed:', error);
             // Always default to unauthenticated on any error
             setAuthenticated(false);
             setUser(null);
-            
+
         } finally {
-            console.log('=== checkAuth FINALLY: Setting states ===');
             setLoading(false);
             setAuthInitialized(true);
             isCheckingAuth.current = false;
-            console.log('=== checkAuth COMPLETE ===');
         }
     }, []);
 
     const logout = useCallback(async (redirect: string = '/login') => {
         try {
             setLoading(true);
-            console.log('Starting logout process...');
-            
+
             // Call Spring Security logout endpoint
             const response = await fetch('/logout', {
                 method: 'POST',
@@ -80,19 +66,17 @@ export function authHook() {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
             });
-            
+
             if (response.ok || response.status === 404) {
-                console.log('Logout successful, clearing state...');
                 // 404 is okay - logout endpoint might not be configured
                 setAuthenticated(false);
                 setUser(null);
                 setAuthInitialized(false);
-                
+
                 // Clear any stored redirect path
                 sessionStorage.removeItem('redirectPath');
-                
+
                 // Use navigate instead of window.location.href
-                console.log('Redirecting to:', redirect);
                 navigate(redirect, { replace: true });
             } else {
                 console.error('Logout failed:', response.status);
@@ -128,7 +112,6 @@ export function authHook() {
     // Initialize auth check only once
     useEffect(() => {
         if (!authInitialized && !isCheckingAuth.current) {
-            console.log('Initializing auth check...');
             checkAuth();
         }
     }, [checkAuth, authInitialized]);
@@ -152,9 +135,9 @@ const initialValue: AuthContextType = {
     user: null,
     authInitialized: false,
     loading: true,
-    checkAuth: async () => {},
-    logout: async () => {},
-    refreshUserData: async () => {},
+    checkAuth: async () => { },
+    logout: async () => { },
+    refreshUserData: async () => { },
 };
 
 const AuthContext = createContext<AuthContextType>(initialValue);
