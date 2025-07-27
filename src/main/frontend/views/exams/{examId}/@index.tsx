@@ -9,8 +9,9 @@ import { ToastContainer } from 'Frontend/components/ToastComponent/ToastComponen
 import { ConfirmationButton } from 'Frontend/components/ConfirmationButton';
 import { TagDisplay } from 'Frontend/components/TagComponents/TagsComponents';
 import { ExamErrorBoundary, PageErrorBoundary } from 'Frontend/components/ErrorBoundaries';
-
+import { ExamAttemptsStats } from 'Frontend/components/ExamAttemptHistoryComponents/ExamProfileAttemptsHistory';
 import './profile.css';
+
 
 export default function ExamDetailView() {
     const { examId } = useParams<{ examId: string }>();
@@ -20,7 +21,6 @@ export default function ExamDetailView() {
     // Toast notification system
     const { toasts, removeToast, showSuccess, showError } = useToast();
 
-    // Single hook replaces 200+ lines of exam loading and permission logic!
     const {
         exam, loading, error, canEdit, checkingPermissions,
         expandedQuestions, toggleQuestion, isCorrectAnswer,
@@ -28,7 +28,6 @@ export default function ExamDetailView() {
         examStats, selectedTags
     } = useExamDetail(examId, authenticated);
 
-    // Single hook replaces 300+ lines of comment and rating logic!
     const {
         comments, commentText, setCommentText, commentRating, setCommentRating,
         submittingComment, handleSubmitComment,
@@ -78,7 +77,7 @@ export default function ExamDetailView() {
         <PageErrorBoundary>
             <div className="profile-container">
                 <div className="profile-content">
-                    {/* 🛡️ Header Card with Error Boundary */}
+                    {/* Header Card */}
                     <ExamErrorBoundary>
                         <div className="header-card">
                             <div className="header-gradient">
@@ -135,7 +134,7 @@ export default function ExamDetailView() {
                         </div>
                     </ExamErrorBoundary>
 
-                    {/* 🛡️ Stats Grid with Error Boundary */}
+                    {/* Stats Grid */}
                     <ExamErrorBoundary>
                         <div className="stats-grid">
                             <div className="stat-card">
@@ -175,8 +174,14 @@ export default function ExamDetailView() {
                             </div>
                         </div>
                     </ExamErrorBoundary>
-
-                    {/* 🛡️ Questions Section with Error Boundary */}
+                    <ExamErrorBoundary>
+                        <ExamAttemptsStats
+                            examId={examId!}
+                            examTitle={exam?.title || 'Exam'}
+                            authenticated={authenticated}
+                        />
+                    </ExamErrorBoundary>
+                    {/* Questions Section */}
                     {exam.questions && exam.questions.length > 0 && (
                         <ExamErrorBoundary>
                             <div className="questions-card">
@@ -278,7 +283,7 @@ export default function ExamDetailView() {
                         </ExamErrorBoundary>
                     )}
 
-                    {/* 🛡️ Comments Section with Error Boundary */}
+                    {/* Comments Section */}
                     <ExamErrorBoundary>
                         <div className="comments-section">
                             <div className="comments-header">
@@ -441,7 +446,7 @@ export default function ExamDetailView() {
                         </div>
                     </ExamErrorBoundary>
 
-                    {/* 🛡️ Action Buttons with Error Boundary */}
+                    {/* Action Buttons */}
                     <ExamErrorBoundary>
                         <div className="exam-actions">
                             <ConfirmationButton

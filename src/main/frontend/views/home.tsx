@@ -4,17 +4,20 @@ import { Button, Icon } from '@vaadin/react-components';
 import { useDashboard } from 'Frontend/hooks/useDashboard';
 import { usePageMeta } from 'Frontend/hooks/usePageMeta';
 import { useAuthRedirect } from 'Frontend/hooks/useAuthRedirect';
-import { MemoizedExamCard } from 'Frontend/components/MemoizedExamCard';
 import { ExamListSkeleton } from 'Frontend/components/LoadingSkeletons';
 import { PageErrorBoundary } from 'Frontend/components/ErrorBoundaries';
+import { useExamAttemptsModal } from 'Frontend/hooks/useExamAttemptModal';
+import { ExamAttemptDetailModal, ExamAttemptsListModal } from 'Frontend/components/ExamAttemptHistoryComponents/ExamAttemptHistoryComponents';
+import { DashboardExamCard } from 'Frontend/components/DashboardExamCard';
+import type Exam from 'Frontend/generated/com/howell/examvault/base/domain/Exam';
 import './home.css';
+
 
 export default function HomeView() {
     const { authenticated, authInitialized, loading, user } = useAuth();
     const navigate = useNavigate();
 
     usePageMeta({ title: 'Dashboard', description: 'Your personal exam dashboard' });
-
     useAuthRedirect({
         authenticated,
         authInitialized,
@@ -24,6 +27,14 @@ export default function HomeView() {
     });
 
     const { recentExams, myExams, loadingData, error } = useDashboard(authenticated, authInitialized, loading);
+
+    // Use the exam attempts modal hook
+    const examAttemptsModal = useExamAttemptsModal();
+
+    // Handler for viewing attempts
+    const handleViewAttempts = (examId: string, examTitle: string) => {
+        examAttemptsModal.openAttemptsModal(examId, examTitle);
+    };
 
     // Show loading while checking auth
     if (!authInitialized || loading) {
@@ -68,6 +79,7 @@ export default function HomeView() {
                             exams={myExams}
                             onCreateAnother={() => navigate('/exams/create')}
                             onTagClick={(tag: string) => navigate(`/exams?tag=${encodeURIComponent(tag)}`)}
+                            onViewAttempts={handleViewAttempts}
                         />
                     )}
 
@@ -80,8 +92,34 @@ export default function HomeView() {
                         onBrowseAll={() => navigate('/exams')}
                         onCreateFirst={() => navigate('/exams/create')}
                         onTagClick={(tag: string) => navigate(`/exams?tag=${encodeURIComponent(tag)}`)}
+                        onViewAttempts={handleViewAttempts}
                     />
                 </div>
+
+                {/* Exam Attempts Modals */}
+                <ExamAttemptsListModal
+                    isOpen={examAttemptsModal.currentView === 'list'}
+                    onClose={examAttemptsModal.closeModal}
+                    examTitle={examAttemptsModal.currentExamTitle || ''}
+                    attempts={examAttemptsModal.attempts}
+                    stats={examAttemptsModal.stats}
+                    isLoading={examAttemptsModal.isLoading}
+                    isError={examAttemptsModal.isError}
+                    error={examAttemptsModal.error}
+                    onAttemptClick={examAttemptsModal.openDetailModal}
+                    getPercentage={examAttemptsModal.getPercentage}
+                    getTimeSpent={examAttemptsModal.getTimeSpent}
+                />
+
+                <ExamAttemptDetailModal
+                    isOpen={examAttemptsModal.currentView === 'detail'}
+                    onClose={examAttemptsModal.closeModal}
+                    onBack={examAttemptsModal.goBackToList}
+                    attempt={examAttemptsModal.selectedAttempt!}
+                    examTitle={examAttemptsModal.currentExamTitle || ''}
+                    getPercentage={examAttemptsModal.getPercentage}
+                    getTimeSpent={examAttemptsModal.getTimeSpent}
+                />
             </div>
         </PageErrorBoundary>
     );
@@ -125,10 +163,11 @@ const WelcomeCard = ({ user, myExamsCount, onCreateExam, onBrowseExams }: {
     </div>
 );
 
-const MyExamsSection = ({ exams, onCreateAnother, onTagClick }: {
-    exams: any[];
+const MyExamsSection = ({ exams, onCreateAnother, onTagClick, onViewAttempts }: {
+    exams: Exam[];
     onCreateAnother: () => void;
     onTagClick: (tag: string) => void;
+    onViewAttempts: (examId: string, examTitle: string) => void;
 }) => (
     <div className="home-section">
         <div className="home-section-header">
@@ -143,10 +182,11 @@ const MyExamsSection = ({ exams, onCreateAnother, onTagClick }: {
 
         <div className="home-exam-grid">
             {exams.slice(0, 4).map((exam) => (
-                <MemoizedExamCard
+                <DashboardExamCard
                     key={exam.id}
                     exam={exam}
                     onTagClick={onTagClick}
+                    onViewAttempts={onViewAttempts}
                     className="home-my-exam"
                 />
             ))}
@@ -158,18 +198,19 @@ const RecentExamsSection = ({
     recentExams,
     loadingData,
     error,
-    userEmail,
     onBrowseAll,
     onCreateFirst,
-    onTagClick
+    onTagClick,
+    onViewAttempts
 }: {
-    recentExams: any[];
+    recentExams: Exam[];
     loadingData: boolean;
     error: string | null;
     userEmail?: string;
     onBrowseAll: () => void;
     onCreateFirst: () => void;
     onTagClick: (tag: string) => void;
+    onViewAttempts: (examId: string, examTitle: string) => void;
 }) => (
     <div className="home-section">
         <div className="home-section-header">
@@ -195,10 +236,11 @@ const RecentExamsSection = ({
         ) : recentExams.length > 0 ? (
             <div className="home-exam-grid">
                 {recentExams.slice(0, 4).map((exam) => (
-                    <MemoizedExamCard
+                    <DashboardExamCard
                         key={exam.id}
                         exam={exam}
                         onTagClick={onTagClick}
+                        onViewAttempts={onViewAttempts}
                         className="home-recent-exam"
                     />
                 ))}

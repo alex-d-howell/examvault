@@ -19,10 +19,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 
-/**
- * Enhanced Question entity with PostgreSQL array support and utility methods
- * Uses Hypersistence Utils for optimal PostgreSQL array performance
- */
 @Entity
 @Table(name = "question")
 public class Question implements Serializable {
@@ -44,8 +40,7 @@ public class Question implements Serializable {
     private List<String> options;
 
     /**
-     * Correct answers stored as PostgreSQL TEXT[] array Supports both single
-     * and multiple correct answers
+     * Correct answers stored as PostgreSQL TEXT[] array
      */
     @NotNull(message = "Correct answer is required")
     @JdbcTypeCode(SqlTypes.ARRAY)

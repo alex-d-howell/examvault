@@ -11,4 +11,6 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, UUID> 
 
     public List<ExamAttempt> findByUserEmail(String userEmail);
 
+    public List<ExamAttempt> findByUserEmailAndExamId(String userEmail, UUID examId);
+
 }

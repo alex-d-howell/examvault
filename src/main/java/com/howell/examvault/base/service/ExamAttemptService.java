@@ -65,13 +65,11 @@ public class ExamAttemptService {
                 ? userService.getAuthenticatedUser().email()
                 : "anonymous-" + UUID.randomUUID().toString();
 
-        // Create and save attempt in one go
         ExamAttempt attempt = new ExamAttempt(userEmail, startInstant, endInstant, exam, answers, correctCount);
 
         if (userService.isAuthenticated()) {
-            // Set back-references and save in one step
             answers.forEach(answer -> answer.setExamAttempt(attempt));
-            return examAttemptRepository.save(attempt); // Return directly
+            return examAttemptRepository.save(attempt); // Save for authenticated users
         }
 
         return attempt; // Return unsaved attempt for anonymous users
@@ -80,11 +78,33 @@ public class ExamAttemptService {
     @PermitAll
     public List<ExamAttempt> getMyExamAttempts() {
         if (!userService.isAuthenticated()) {
-            throw new UnauthorizedException("Authentication required to view exam history");
+            throw new UnauthorizedException("Authentication required to view your exam history");
         }
 
         String userEmail = userService.getAuthenticatedUser().email();
         return examAttemptRepository.findByUserEmail(userEmail);
+    }
+
+    @PermitAll
+    public List<ExamAttempt> getMyExamAttemptsByExam(String examId) {
+        if (!userService.isAuthenticated()) {
+            throw new UnauthorizedException("Authentication required to view your exam attempts");
+        }
+
+        UUID examUuid;
+        try {
+            examUuid = UUID.fromString(examId);
+        } catch (IllegalArgumentException e) {
+            throw new ValidationException("Invalid exam ID format!");
+        }
+
+        if (!examRepository.existsById(examUuid)) {
+            throw new ExamNotFoundException(examUuid);
+        }
+
+        String userEmail = userService.getAuthenticatedUser().email();
+        
+        return examAttemptRepository.findByUserEmailAndExamId(userEmail, examUuid);
     }
 
     private boolean isAnswerCorrect(Answer answer, Map<UUID, List<String>> correctAnswerMap) {
