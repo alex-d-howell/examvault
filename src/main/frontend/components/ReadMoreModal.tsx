@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Dialog } from '@vaadin/react-components/Dialog';
 
 export const ReadMoreModal = ({ description }: { description: string }) => {
