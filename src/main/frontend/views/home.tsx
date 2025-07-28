@@ -1,17 +1,17 @@
+// Updated home.tsx with enhanced dashboard features
+
 import { useAuth } from 'Frontend/hooks/useAuth';
 import { useNavigate } from 'react-router';
 import { Button, Icon } from '@vaadin/react-components';
-import { useDashboard } from 'Frontend/hooks/useDashboard';
+import { useDashboard } from 'Frontend/hooks/useDashboard'; // Your enhanced hook
 import { usePageMeta } from 'Frontend/hooks/usePageMeta';
 import { useAuthRedirect } from 'Frontend/hooks/useAuthRedirect';
-import { ExamListSkeleton } from 'Frontend/components/LoadingSkeletons';
 import { PageErrorBoundary } from 'Frontend/components/ErrorBoundaries';
 import { useExamAttemptsModal } from 'Frontend/hooks/useExamAttemptModal';
 import { ExamAttemptDetailModal, ExamAttemptsListModal } from 'Frontend/components/ExamAttemptHistoryComponents/ExamAttemptHistoryComponents';
-import { DashboardExamCard } from 'Frontend/components/DashboardExamCard';
-import type Exam from 'Frontend/generated/com/howell/examvault/base/domain/Exam';
+import { DashboardExamCard } from 'Frontend/components/DashboardExamCard/DashboardExamCard';
+import { MyAttempts } from 'Frontend/components/MyAttemptsComponent/MyAttemptsComponent';
 import './home.css';
-
 
 export default function HomeView() {
     const { authenticated, authInitialized, loading, user } = useAuth();
@@ -26,12 +26,16 @@ export default function HomeView() {
         isProtectedRoute: true
     });
 
-    const { recentExams, myExams, loadingData, error } = useDashboard(authenticated, authInitialized, loading);
+    const { 
+        myExams, 
+        myAttempts, 
+        dashboardStats, 
+        loadingData, 
+        error 
+    } = useDashboard(authenticated, authInitialized, loading);
 
-    // Use the exam attempts modal hook
     const examAttemptsModal = useExamAttemptsModal();
 
-    // Handler for viewing attempts
     const handleViewAttempts = (examId: string, examTitle: string) => {
         examAttemptsModal.openAttemptsModal(examId, examTitle);
     };
@@ -48,7 +52,6 @@ export default function HomeView() {
         );
     }
 
-    // Redirect message for unauthenticated users
     if (!authenticated) {
         return (
             <div className="home-loading">
@@ -63,37 +66,91 @@ export default function HomeView() {
     return (
         <PageErrorBoundary>
             <div className="home-container">
-                {/* Welcome Header */}
-                <WelcomeCard
+                {/* Enhanced Welcome Header */}
+                <EnhancedWelcomeCard
                     user={user}
-                    myExamsCount={myExams.length}
+                    stats={dashboardStats}
                     onCreateExam={() => navigate('/exams/create')}
                     onBrowseExams={() => navigate('/exams')}
                 />
 
+                {/* Dashboard Statistics Overview */}
+                <DashboardStatsOverview stats={dashboardStats} />
+
                 {/* Main Dashboard Content */}
                 <div className="home-dashboard">
-                    {/* My Exams Section */}
-                    {myExams.length > 0 && (
-                        <MyExamsSection
-                            exams={myExams}
-                            onCreateAnother={() => navigate('/exams/create')}
-                            onTagClick={(tag: string) => navigate(`/exams?tag=${encodeURIComponent(tag)}`)}
-                            onViewAttempts={handleViewAttempts}
-                        />
-                    )}
+                    <div className="dashboard-grid">
+                        {/* My Exams Section */}
+                        {myExams.length > 0 && (
+                            <div className="dashboard-section my-exams">
+                                <div className="section-header">
+                                    <h3>
+                                        <Icon icon="vaadin:user-card" />
+                                        Your Exams ({myExams.length})
+                                    </h3>
+                                    <Button 
+                                        theme="tertiary small"
+                                        onClick={() => navigate('/exams/create')}
+                                    >
+                                        <Icon icon="vaadin:plus" slot="prefix" />
+                                        Create New
+                                    </Button>
+                                </div>
+                                <div className="exam-grid">
+                                    {myExams.slice(0, 4).map((exam) => (
+                                        <DashboardExamCard
+                                            key={exam.id}
+                                            exam={exam}
+                                            onTagClick={(tag: string) => navigate(`/exams?tag=${encodeURIComponent(tag)}`)}
+                                            onViewAttempts={handleViewAttempts}
+                                            className="my-exam-card"
+                                        />
+                                    ))}
+                                </div>
+                                {myExams.length > 4 && (
+                                    <div className="section-footer">
+                                        <Button 
+                                            theme="tertiary"
+                                            onClick={() => navigate('/exams?filter=mine')}
+                                        >
+                                            View All {myExams.length} Exams
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
-                    {/* Recent Exams Section */}
-                    <RecentExamsSection
-                        recentExams={recentExams}
-                        loadingData={loadingData}
-                        error={error}
-                        userEmail={user?.email}
-                        onBrowseAll={() => navigate('/exams')}
-                        onCreateFirst={() => navigate('/exams/create')}
-                        onTagClick={(tag: string) => navigate(`/exams?tag=${encodeURIComponent(tag)}`)}
-                        onViewAttempts={handleViewAttempts}
-                    />
+                        {/* My Attempts Section */}
+                        <div className="dashboard-section my-attempts">
+                            <div className="section-header">
+                                <h3>
+                                    <Icon icon="vaadin:clock" />
+                                    My Attempts
+                                </h3>
+                                {myAttempts.length > 5 && (
+                                    <Button 
+                                        theme="tertiary small"
+                                        onClick={() => navigate('/attempts')} // You'd need this route
+                                    >
+                                        View All
+                                    </Button>
+                                )}
+                            </div>
+                            {loadingData ? (
+                                <div className="loading-skeleton">
+                                    {Array.from({ length: 3 }, (_, i) => (
+                                        <div key={i} className="attempt-skeleton" />
+                                    ))}
+                                </div>
+                            ) : (
+                                <MyAttempts
+                                    attempts={myAttempts}
+                                    onTagClick={(tag: string) => navigate(`/exams?tag=${encodeURIComponent(tag)}`)}
+                                    showAll={false}
+                                />
+                            )}
+                        </div>
+                    </div>
                 </div>
 
                 {/* Exam Attempts Modals */}
@@ -125,37 +182,50 @@ export default function HomeView() {
     );
 }
 
-const WelcomeCard = ({ user, myExamsCount, onCreateExam, onBrowseExams }: {
+// Enhanced Welcome Card Component
+const EnhancedWelcomeCard = ({ user, stats, onCreateExam, onBrowseExams }: {
     user: any;
-    myExamsCount: number;
+    stats: any;
     onCreateExam: () => void;
     onBrowseExams: () => void;
 }) => (
-    <div className="home-welcome-card">
-        <div className="home-welcome-content">
-            <div className="home-user-info">
-                <img
-                    src={user?.profilePictureUrl}
-                    alt={user?.name}
-                    className="home-avatar"
-                    referrerPolicy="no-referrer"
-                />
-                <div>
-                    <h1 className="home-welcome-title">
-                        Welcome back, {user?.name?.split(' ')[0]}!
-                    </h1>
-                    <p className="home-welcome-subtitle">
-                        You've created {myExamsCount} exam{myExamsCount !== 1 ? 's' : ''}
-                    </p>
+    <div className="welcome-card-enhanced">
+        <div className="welcome-background">
+            <div className="welcome-content">
+                <div className="user-section">
+                    <img
+                        src={user?.profilePictureUrl}
+                        alt={user?.name}
+                        className="user-avatar"
+                        referrerPolicy="no-referrer"
+                    />
+                    <div className="user-info">
+                        <h1 className="welcome-title">
+                            Welcome back, {user?.name?.split(' ')[0]}! 🎯
+                        </h1>
+                        <p className="welcome-subtitle">
+                            Track your progress and keep improving!
+                        </p>
+                    </div>
+                </div>
+                <div className="quick-stats">
+                    <div className="stat-item">
+                        <span className="stat-number">{stats.totalExamsCreated}</span>
+                        <span className="stat-label">Exams Created</span>
+                    </div>
+                    <div className="stat-item">
+                        <span className="stat-number">{stats.uniqueExamsTaken}</span>
+                        <span className="stat-label">Exams Attempted</span>
+                    </div>
                 </div>
             </div>
-            <div className="home-action-buttons">
-                <Button onClick={onCreateExam} theme="primary" className="home-create-btn">
-                    <Icon icon="vaadin:plus" />
+            <div className="welcome-actions">
+                <Button onClick={onCreateExam} theme="primary" className="create-btn">
+                    <Icon icon="vaadin:plus" slot="prefix" />
                     Create Exam
                 </Button>
-                <Button onClick={onBrowseExams} theme="secondary" className="home-browse-btn">
-                    <Icon icon="vaadin:book" />
+                <Button onClick={onBrowseExams} theme="tertiary" className="browse-btn">
+                    <Icon icon="vaadin:book" slot="prefix" />
                     Browse Exams
                 </Button>
             </div>
@@ -163,96 +233,55 @@ const WelcomeCard = ({ user, myExamsCount, onCreateExam, onBrowseExams }: {
     </div>
 );
 
-const MyExamsSection = ({ exams, onCreateAnother, onTagClick, onViewAttempts }: {
-    exams: Exam[];
-    onCreateAnother: () => void;
-    onTagClick: (tag: string) => void;
-    onViewAttempts: (examId: string, examTitle: string) => void;
-}) => (
-    <div className="home-section">
-        <div className="home-section-header">
-            <h2 className="home-section-title">
-                <Icon icon="vaadin:user-card" className="section-icon" />
-                My Exams ({exams.length})
-            </h2>
-            <Button onClick={onCreateAnother} theme="tertiary small">
-                Create Another
-            </Button>
-        </div>
-
-        <div className="home-exam-grid">
-            {exams.slice(0, 4).map((exam) => (
-                <DashboardExamCard
-                    key={exam.id}
-                    exam={exam}
-                    onTagClick={onTagClick}
-                    onViewAttempts={onViewAttempts}
-                    className="home-my-exam"
-                />
-            ))}
-        </div>
-    </div>
-);
-
-const RecentExamsSection = ({
-    recentExams,
-    loadingData,
-    error,
-    onBrowseAll,
-    onCreateFirst,
-    onTagClick,
-    onViewAttempts
-}: {
-    recentExams: Exam[];
-    loadingData: boolean;
-    error: string | null;
-    userEmail?: string;
-    onBrowseAll: () => void;
-    onCreateFirst: () => void;
-    onTagClick: (tag: string) => void;
-    onViewAttempts: (examId: string, examTitle: string) => void;
-}) => (
-    <div className="home-section">
-        <div className="home-section-header">
-            <h2 className="home-section-title">
-                <Icon icon="vaadin:clock" className="section-icon" />
-                Recent Exams
-            </h2>
-            <Button onClick={onBrowseAll} theme="tertiary small">
-                Browse All
-            </Button>
-        </div>
-
-        {loadingData ? (
-            <ExamListSkeleton count={4} layout="grid" />
-        ) : error ? (
-            <div className="home-empty-state">
-                <Icon icon="vaadin:exclamation-triangle" className="home-empty-icon" />
-                <p>Failed to load exams: {error}</p>
-                <Button onClick={onBrowseAll} theme="primary">
-                    Try Browse Page
-                </Button>
+// Dashboard Statistics Overview Component
+const DashboardStatsOverview = ({ stats }: { stats: any }) => (
+    <div className="dashboard-stats-overview">
+        <div className="stats-grid">
+            <div className="stat-card primary">
+                <div className="stat-icon">
+                    <Icon icon="vaadin:list" />
+                </div>
+                <div className="stat-content">
+                    <span className="stat-value">{stats.totalAttempts}</span>
+                    <span className="stat-title">Total Attempts</span>
+                    <span className="stat-trend positive">{stats.recentActivity} this week</span>
+                </div>
             </div>
-        ) : recentExams.length > 0 ? (
-            <div className="home-exam-grid">
-                {recentExams.slice(0, 4).map((exam) => (
-                    <DashboardExamCard
-                        key={exam.id}
-                        exam={exam}
-                        onTagClick={onTagClick}
-                        onViewAttempts={onViewAttempts}
-                        className="home-recent-exam"
-                    />
-                ))}
+            
+            <div className="stat-card secondary">
+                <div className="stat-icon">
+                    <Icon icon="vaadin:book" />
+                </div>
+                <div className="stat-content">
+                    <span className="stat-value">{stats.uniqueExamsTaken}</span>
+                    <span className="stat-title">Exams Attempted</span>
+                    <span className="stat-trend neutral">Different topics</span>
+                </div>
             </div>
-        ) : (
-            <div className="home-empty-state">
-                <Icon icon="vaadin:book" className="home-empty-icon" />
-                <p>No exams available yet.</p>
-                <Button onClick={onCreateFirst} theme="primary">
-                    Create the First Exam
-                </Button>
+            
+            <div className="stat-card accent">
+                <div className="stat-icon">
+                    <Icon icon="vaadin:edit" />
+                </div>
+                <div className="stat-content">
+                    <span className="stat-value">{stats.totalExamsCreated}</span>
+                    <span className="stat-title">Exams Created</span>
+                    <span className="stat-trend neutral">Your contributions</span>
+                </div>
             </div>
-        )}
+            
+            <div className="stat-card info">
+                <div className="stat-icon">
+                    <Icon icon="vaadin:fire" />
+                </div>
+                <div className="stat-content">
+                    <span className="stat-value">{stats.studyStreak}</span>
+                    <span className="stat-title">Study Streak</span>
+                    <span className="stat-trend positive">
+                        {stats.studyStreak > 0 ? 'Keep it up!' : 'Start today!'}
+                    </span>
+                </div>
+            </div>
+        </div>
     </div>
 );
