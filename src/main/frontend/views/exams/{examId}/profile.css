@@ -717,18 +717,6 @@
   color: #374151;
 }
 
-.comment-error {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #dc2626;
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 0.5rem;
-  padding: 0.75rem;
-  font-size: 0.875rem;
-}
-
 .form-actions {
   display: flex;
   justify-content: flex-end;
@@ -1073,20 +1061,4 @@
 .clear-rating:focus {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
-}
-
-/* Animation for new comments */
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.comment-item:first-child {
-  animation: slideIn 0.3s ease-out;
 }

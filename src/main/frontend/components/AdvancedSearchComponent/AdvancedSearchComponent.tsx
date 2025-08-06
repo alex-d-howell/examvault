@@ -8,7 +8,8 @@ import {
     IntegerField,
     DatePicker
 } from '@vaadin/react-components';
-import { TagSearch } from 'Frontend/components/tagComponents/tagsComponents';
+import { TagSearch } from '../TagComponents/TagsComponents';
+import './AdvancedSearchComponent.css';
 
 interface SearchFilters {
     title: string;
@@ -70,7 +71,7 @@ export const AdvancedSearchComponent: React.FC<AdvancedSearchProps> = ({
     const handleSearch = async () => {
         setIsLoading(true);
         try {
-            await onSearch(filters);
+            onSearch(filters);
         } finally {
             setIsLoading(false);
         }

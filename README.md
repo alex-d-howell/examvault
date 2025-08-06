@@ -2,9 +2,10 @@
 
 ### To Do List
 
-- Configure application to use Postgres
-- Develop & document deployment procedures
+- Add modal for user's ExamAttempts in dashboard and in profile
 - Restyle application
+- Write Frontend tests
+- Develop & document deployment procedures
 
 To start the application in development mode, import it into your IDE and run the `ExamVault` class. 
 You can also start the application from the command line by running: 

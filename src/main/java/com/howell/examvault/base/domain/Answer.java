@@ -30,7 +30,7 @@ public class Answer implements Serializable {
 
     @ManyToOne
     @JoinColumn(name = "exam_attempt_id", nullable = false)
-    @JsonIgnore  // Prevents serialization issues
+    @JsonIgnore  // Prevent serialization issues
     private ExamAttempt examAttempt;
 
     @NotNull(message = "Question ID is required")
@@ -42,36 +42,18 @@ public class Answer implements Serializable {
     @Column(name = "answer_choices", columnDefinition = "text[]")
     private List<String> answerChoices;
 
-    /**
-     * Whether this answer is correct (computed automatically via database
-     * trigger)
-     */
     @Column(name = "is_correct")
     private Boolean isCorrect;
 
-    // Constructors
     public Answer() {
     }
 
-    /**
-     * Main constructor with examAttempt reference (matching Question pattern)
-     */
     public Answer(ExamAttempt examAttempt, UUID questionId, List<String> answerChoices) {
         this.examAttempt = examAttempt;
         this.questionId = questionId;
         this.answerChoices = answerChoices;
     }
 
-    /**
-     * Constructor with examAttemptId for backward compatibility
-     */
-    public Answer(UUID examAttemptId, UUID questionId, List<String> answerChoices) {
-        this.questionId = questionId;
-        this.answerChoices = answerChoices;
-        // Note: examAttempt will be set by the service layer
-    }
-
-    // Getters and Setters
     public UUID getId() {
         return id;
     }

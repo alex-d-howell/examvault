@@ -77,7 +77,7 @@ export default function LoginView() {
                             <span className="login-logo-text">EXAM VAULT</span>
                         </div>
                     </div>
-                    <h2 className="login-title">Welcome Back</h2>
+                    <h2 className="login-title">Welcome!</h2>
                     <p className="login-subtitle">
                         Sign in to access your personalized dashboard and track your progress
                     </p>
@@ -87,7 +87,6 @@ export default function LoginView() {
                 {hasError && (
                     <div className="login-error-container">
                         <div className="login-error-content">
-                            <span className="login-error-icon">⚠️</span>
                             <span className="login-error-text">
                                 Authentication failed. Please try again.
                             </span>
@@ -141,16 +140,13 @@ export default function LoginView() {
                     <p className="login-benefits-title">What you get with an account:</p>
                     <div className="login-benefits-list">
                         <div className="login-benefit-item">
-                            <span className="login-benefit-icon">📊</span>
                             <span className="login-benefit-text">Track your progress and scores</span>
                         </div>
                         <div className="login-benefit-item">
-                            <span className="login-benefit-icon">📝</span>
                             <span className="login-benefit-text">Create and share custom exams</span>
                         </div>
                         <div className="login-benefit-item">
-                            <span className="login-benefit-icon">🎯</span>
-                            <span className="login-benefit-text">Get personalized recommendations</span>
+                            <span className="login-benefit-text">Get personalized recommendations!</span>
                         </div>
                     </div>
                 </div>

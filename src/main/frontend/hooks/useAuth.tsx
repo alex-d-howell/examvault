@@ -67,16 +67,15 @@ export function authHook() {
                 },
             });
 
+            // Just in case...
             if (response.ok || response.status === 404) {
-                // 404 is okay - logout endpoint might not be configured
                 setAuthenticated(false);
                 setUser(null);
                 setAuthInitialized(false);
 
                 // Clear any stored redirect path
                 sessionStorage.removeItem('redirectPath');
-
-                // Use navigate instead of window.location.href
+                
                 navigate(redirect, { replace: true });
             } else {
                 console.error('Logout failed:', response.status);

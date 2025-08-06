@@ -1,3 +1,6 @@
+@import './tokens.css';
+@import './utils.css';
+
 /* Root layout container */
 .main-layout-root {
   display: flex;
@@ -41,4 +44,65 @@
   background-color: #f1f1f1;
   height: 10vh;
   padding: 1rem;
+}
+
+/* ✨ Add this at the END of your existing layout.css */
+
+/* Professional Loading Animations */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%) !important;
+  background-size: 200% 100% !important;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite !important;
+}
+
+/* Utility classes for skeletons */
+.mb-xs {
+  margin-bottom: 0.25rem;
+}
+.mb-sm {
+  margin-bottom: 0.5rem;
+}
+.mb-lg {
+  margin-bottom: 1rem;
+}
+.mb-xl {
+  margin-bottom: 1.25rem;
+}
+.mr-sm {
+  margin-right: 0.5rem;
+}
+
+/* Virtual scrolling container */
+.virtual-exam-list {
+  width: 100%;
+  border-radius: 0.75rem;
+  background: transparent;
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+.virtual-exam-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.virtual-exam-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.virtual-exam-list::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+  border-radius: 0.25rem;
+}
+
+.virtual-exam-list::-webkit-scrollbar-thumb:hover {
+  background-color: #9ca3af;
 }

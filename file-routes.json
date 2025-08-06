@@ -1,0 +1,96 @@
+[
+  {
+    "route": "",
+    "flowLayout": false,
+    "params": {},
+    "title": "Main Layout",
+    "children": [
+      {
+        "route": "",
+        "flowLayout": false,
+        "params": {},
+        "title": "Root"
+      },
+      {
+        "route": "exams",
+        "params": {},
+        "children": [
+          {
+            "route": "",
+            "flowLayout": false,
+            "params": {},
+            "title": "Exams"
+          },
+          {
+            "route": "create",
+            "params": {},
+            "children": [
+              {
+                "route": "",
+                "flowLayout": false,
+                "params": {},
+                "title": "Create"
+              }
+            ]
+          },
+          {
+            "route": ":examId",
+            "params": {
+              ":examId": "req"
+            },
+            "children": [
+              {
+                "route": "",
+                "flowLayout": false,
+                "params": {},
+                "title": "Exam Detail"
+              },
+              {
+                "route": "attempt",
+                "params": {},
+                "children": [
+                  {
+                    "route": "",
+                    "flowLayout": false,
+                    "params": {},
+                    "title": "Attempt"
+                  }
+                ]
+              },
+              {
+                "route": "edit",
+                "params": {},
+                "children": [
+                  {
+                    "route": "",
+                    "flowLayout": false,
+                    "params": {},
+                    "title": "Edit"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "route": "home",
+        "flowLayout": false,
+        "params": {},
+        "title": "Home"
+      },
+      {
+        "route": "login",
+        "params": {},
+        "children": [
+          {
+            "route": "",
+            "flowLayout": false,
+            "params": {},
+            "title": "Login"
+          }
+        ]
+      }
+    ]
+  }
+]
