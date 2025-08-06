@@ -21,16 +21,16 @@ export default function MainLayout() {
 function LayoutContent() {
   const { logout, authenticated, authInitialized, loading } = useAuth();
   const navigate = useNavigate();
-  
+
   // Navigation logic
   const { currentPath, navRoutes, isProtectedRoute, shouldShowLayout } = useNavigation(authenticated);
-  
+
   // Authentication redirect
   useAuthRedirect({ authenticated, authInitialized, loading, currentPath, isProtectedRoute });
 
   // For login route, render without layout
   if (currentPath === '/login') {
-    return <Outlet />;
+    return <Outlet data-testid="outlet" />;
   }
 
   // Show loading while checking auth (only for protected routes)
@@ -47,7 +47,7 @@ function LayoutContent() {
 
   // handle root path logic in root
   if (currentPath === '/') {
-    return <Outlet />;
+    return <Outlet data-testid="outlet" />;
   }
 
   // Render main layout for all users (authenticated and anonymous)
@@ -56,16 +56,16 @@ function LayoutContent() {
       <div className="min-h-screen bg-gray-50">
         <div className="main-layout-root">
           <Font family='Montserrat'>
-            <HeaderComponent 
-              navRoutes={navRoutes} 
-              currentPath={currentPath} 
+            <HeaderComponent
+              navRoutes={navRoutes}
+              currentPath={currentPath}
               authenticated={authenticated}
               onSignOut={() => logout('/')}
               onSignIn={() => navigate('/login')}
             />
             <main className="main-content">
               <TagsProvider>
-                <Outlet />
+                <Outlet data-testid="outlet" />
               </TagsProvider>
             </main>
             <FooterComponent />
@@ -75,10 +75,10 @@ function LayoutContent() {
     );
   }
 
-  return <Outlet />;
+  return <Outlet data-testid="outlet" />;
 }
 
-const HeaderComponent = ({ navRoutes, currentPath, authenticated, onSignOut, onSignIn }: {
+const HeaderComponent = ({ navRoutes, currentPath, authenticated, onSignOut }: {
   navRoutes: Array<{ path: string; label: string }>;
   currentPath: string;
   authenticated: boolean;
@@ -89,11 +89,11 @@ const HeaderComponent = ({ navRoutes, currentPath, authenticated, onSignOut, onS
     <h1 className="main-title">EXAM VAULT</h1>
     <div className="main-header-controls">
       <nav style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-        {navRoutes.map(({ path, label }) => (
-          <NavLink 
-            key={path} 
-            to={path} 
-            style={currentPath === path ? activeNavStyle : inactiveNavStyle} 
+        {Array.isArray(navRoutes) && navRoutes.map(({ path, label }) => (
+          <NavLink
+            key={path}
+            to={path}
+            style={currentPath === path ? activeNavStyle : inactiveNavStyle}
             className="main-nav-link"
             onMouseEnter={e => {
               if (currentPath !== path) {
@@ -113,13 +113,13 @@ const HeaderComponent = ({ navRoutes, currentPath, authenticated, onSignOut, onS
             {label}
           </NavLink>
         ))}
-        
+
         {/* Authentication controls */}
         {authenticated ? (
           <div className="flex items-center ml-4">
-            <Button 
-              onClick={onSignOut} 
-              theme="tertiary small" 
+            <Button
+              onClick={onSignOut}
+              theme="tertiary small"
               style={{ color: 'white', minHeight: '32px' }}
             >
               Sign Out

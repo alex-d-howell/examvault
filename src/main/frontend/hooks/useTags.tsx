@@ -22,15 +22,15 @@ interface TagInputHook {
     showTagSuggestions: boolean;
     setShowTagSuggestions: (show: boolean) => void;
     filteredTags: string[];
-    
+
     // Tag management for a specific exam/entity
     selectedTags: string[];
-    
+
     // Helper functions
     handleTagInputFocus: () => void;
     handleTagInputBlur: () => void;
     clearTagInput: () => void;
-    
+
     // Validation
     isValidTag: (tag: string) => boolean;
     getTagValidationError: (tag: string) => string | null;
@@ -68,8 +68,9 @@ export function TagsProvider({ children }: TagsProviderProps) {
 
     // Function to add a new tag to the cache (when user creates a new tag)
     const addTag = (newTag: string): void => {
-        if (newTag && !tags.includes(newTag)) {
-            setTags(prev => [...prev, newTag].sort());
+        const trimmedTag = newTag.trim(); // Fix: Trim the tag first
+        if (trimmedTag && !tags.includes(trimmedTag)) { // Fix: Check trimmed tag
+            setTags(prev => [...prev, trimmedTag].sort()); // Fix: Add trimmed tag
         }
     };
 
@@ -77,8 +78,8 @@ export function TagsProvider({ children }: TagsProviderProps) {
     const refreshTags = async (): Promise<void> => {
         try {
             setLoading(true);
+            setError(null); // Clear any previous errors
             const fetchedTags = await ExamService.getAllTags();
-            // Filter out any undefined values and ensure we have string[]
             const validTags = (fetchedTags || []).filter((tag): tag is string => tag != null && tag !== undefined);
             setTags(validTags);
         } catch (err) {
@@ -113,10 +114,9 @@ export function useTags(): TagsContextType {
     return context;
 }
 
-// FIXED: Move useTagInput outside as a proper custom hook
 export function useTagInput(selectedTags: string[] = []): TagInputHook {
     const { tags } = useTags(); // Get tags from context
-    
+
     const [tagInput, setTagInput] = useState<string>('');
     const [showTagSuggestions, setShowTagSuggestions] = useState<boolean>(false);
     const [filteredTags, setFilteredTags] = useState<string[]>([]);
@@ -124,7 +124,7 @@ export function useTagInput(selectedTags: string[] = []): TagInputHook {
     // Filter tags based on input and selection
     useEffect(() => {
         if (tagInput.length > 0) {
-            const filtered = tags.filter(tag => 
+            const filtered = tags.filter(tag =>
                 tag.toLowerCase().includes(tagInput.toLowerCase()) &&
                 !selectedTags.includes(tag)
             );
@@ -139,9 +139,9 @@ export function useTagInput(selectedTags: string[] = []): TagInputHook {
     // Tag validation
     const isValidTag = (tag: string): boolean => {
         const trimmed = tag.trim();
-        return trimmed.length > 0 && 
-               trimmed.length <= 50 && 
-               trimmed.match(/^[a-zA-Z0-9\s\-_]+$/) !== null;
+        return trimmed.length > 0 &&
+            trimmed.length <= 50 &&
+            trimmed.match(/^[a-zA-Z0-9\s\-_]+$/) !== null;
     };
 
     const getTagValidationError = (tag: string): string | null => {

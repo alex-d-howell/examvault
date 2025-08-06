@@ -3,7 +3,6 @@ import { Notification } from '@vaadin/react-components';
 import { ExamService } from 'Frontend/generated/endpoints';
 import type Exam from 'Frontend/generated/com/howell/examvault/base/domain/Exam';
 import { APP_CONFIG } from '../config/constants';
-import { useAsyncOperation } from './useAsyncOperation';
 
 export interface SearchFilters {
   title: string;
@@ -50,6 +49,10 @@ const sortExamsClientSide = (
   sortBy: ClientSortOption,
   lastFilters?: SearchFilters | null
 ): Exam[] => {
+  if (!examList || examList.length === 0) {
+    return [];
+  }
+
   const sorted = [...examList];
 
   switch (sortBy) {
@@ -94,8 +97,8 @@ const sortExamsClientSide = (
         // Tag match factor
         if (lastFilters?.tags && lastFilters.tags.length > 0) {
           const searchTags = lastFilters.tags.map(tag => tag.toLowerCase());
-          const examTagsA = (a.tags || []).map(tag => tag?.toLowerCase());
-          const examTagsB = (b.tags || []).map(tag => tag?.toLowerCase());
+          const examTagsA = (a.tags || []).map(tag => tag?.toLowerCase()).filter(Boolean);
+          const examTagsB = (b.tags || []).map(tag => tag?.toLowerCase()).filter(Boolean);
 
           const matchesA = searchTags.filter(tag => examTagsA.includes(tag)).length;
           const matchesB = searchTags.filter(tag => examTagsB.includes(tag)).length;
@@ -128,8 +131,6 @@ export const useExamSearch = (): UseExamSearchReturn => {
     sortBy: 'date',
   });
 
-  const { execute: executeSearch, loading: asyncLoading } = useAsyncOperation();
-
   const searchExams = useCallback(async (filters: SearchFilters) => {
     setState(prev => ({ 
       ...prev, 
@@ -140,53 +141,51 @@ export const useExamSearch = (): UseExamSearchReturn => {
     }));
 
     try {
-      const results = await executeSearch(() =>
-        ExamService.searchExams(
-          filters.title || '',
-          filters.uploadedBy || '',
-          filters.tags,
-          filters.startDate || '',
-          filters.endDate || '',
-          filters.minQuestions || APP_CONFIG.SEARCH.MIN_QUESTIONS_DEFAULT,
-          filters.maxQuestions || APP_CONFIG.SEARCH.MAX_QUESTIONS_DEFAULT,
-          filters.sortBy
-        )
+      const results = await ExamService.searchExams(
+        filters.title || '',
+        filters.uploadedBy || '',
+        filters.tags || [],
+        filters.startDate || '',
+        filters.endDate || '',
+        filters.minQuestions || APP_CONFIG.SEARCH.MIN_QUESTIONS_DEFAULT,
+        filters.maxQuestions || APP_CONFIG.SEARCH.MAX_QUESTIONS_DEFAULT,
+        filters.sortBy || 'date'
       );
 
-      if (results) {
-        const validResults = results.filter((exam: Exam): exam is Exam => exam !== undefined);
-        
-        setState(prev => ({
-          ...prev,
-          exams: validResults,
-          loading: false,
-          error: null
-        }));
+      const validResults = (results || []).filter((exam: Exam | undefined): exam is Exam => 
+        exam !== undefined && exam !== null
+      );
+      
+      setState(prev => ({
+        ...prev,
+        exams: validResults,
+        loading: false,
+        error: null
+      }));
 
-        // Enhanced notifications
-        if (validResults.length === 0) {
-          let message = 'No exams found matching your search criteria';
-          if (filters.tags && filters.tags.length > 0) {
-            message += ` (searched for tags: ${filters.tags.join(', ')})`;
-          }
-
-          Notification.show(message, {
-            position: 'top-center',
-            duration: APP_CONFIG.TIMING.ERROR_NOTIFICATION_DURATION,
-            theme: 'contrast'
-          });
-        } else {
-          let message = `Found ${validResults.length} exam${validResults.length === 1 ? '' : 's'}`;
-          if (filters.tags && filters.tags.length > 0) {
-            message += ` with tags: ${filters.tags.join(', ')}`;
-          }
-
-          Notification.show(message, {
-            position: 'top-center',
-            duration: APP_CONFIG.TIMING.NOTIFICATION_DURATION,
-            theme: 'success'
-          });
+      // Notifications
+      if (validResults.length === 0) {
+        let message = 'No exams found matching your search criteria';
+        if (filters.tags && filters.tags.length > 0) {
+          message += ` (searched for tags: ${filters.tags.join(', ')})`;
         }
+
+        Notification.show(message, {
+          position: 'top-center',
+          duration: APP_CONFIG.TIMING.ERROR_NOTIFICATION_DURATION,
+          theme: 'contrast'
+        });
+      } else {
+        let message = `Found ${validResults.length} exam${validResults.length === 1 ? '' : 's'}`;
+        if (filters.tags && filters.tags.length > 0) {
+          message += ` with tags: ${filters.tags.join(', ')}`;
+        }
+
+        Notification.show(message, {
+          position: 'top-center',
+          duration: APP_CONFIG.TIMING.NOTIFICATION_DURATION,
+          theme: 'success'
+        });
       }
     } catch (error) {
       console.error('Error in advanced search:', error);
@@ -204,7 +203,7 @@ export const useExamSearch = (): UseExamSearchReturn => {
         theme: 'error'
       });
     }
-  }, [executeSearch]);
+  }, []);
 
   const clearSearch = useCallback(() => {
     setState({
@@ -226,23 +225,25 @@ export const useExamSearch = (): UseExamSearchReturn => {
   const sortExams = useCallback((sortBy: ClientSortOption) => {
     setState(prev => ({ ...prev, sortBy }));
 
-    // Performance feedback
-    setTimeout(() => {
-      const sortLabels: Record<ClientSortOption, string> = {
-        date: 'Upload Date (Newest First)',
-        title: 'Title (A-Z)',
-        author: 'Author (A-Z)',
-        questions: 'Question Count (Most First)',
-        comments: 'Comment Count (Most First)',
-        relevance: 'Relevance Score'
-      };
+    // Performance feedback with error handling for timers
+    if (typeof setTimeout !== 'undefined') {
+      setTimeout(() => {
+        const sortLabels: Record<ClientSortOption, string> = {
+          date: 'Upload Date (Newest First)',
+          title: 'Title (A-Z)',
+          author: 'Author (A-Z)',
+          questions: 'Question Count (Most First)',
+          comments: 'Comment Count (Most First)',
+          relevance: 'Relevance Score'
+        };
 
-      Notification.show(`Sorted by: ${sortLabels[sortBy]}`, {
-        position: 'top-center',
-        duration: APP_CONFIG.TIMING.SUCCESS_NOTIFICATION_DURATION,
-        theme: 'contrast'
-      });
-    }, APP_CONFIG.TIMING.SHIMMER_ANIMATION_DURATION);
+        Notification.show(`Sorted by: ${sortLabels[sortBy]}`, {
+          position: 'top-center',
+          duration: APP_CONFIG.TIMING.SUCCESS_NOTIFICATION_DURATION,
+          theme: 'contrast'
+        });
+      }, APP_CONFIG.TIMING.SHIMMER_ANIMATION_DURATION);
+    }
   }, []);
 
   // Memoized sorted results for performance
@@ -252,7 +253,7 @@ export const useExamSearch = (): UseExamSearchReturn => {
 
   return {
     exams: state.exams,
-    loading: state.loading || asyncLoading,
+    loading: state.loading,
     error: state.error,
     hasSearched: state.hasSearched,
     resultsCount: state.exams.length,

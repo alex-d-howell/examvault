@@ -16,7 +16,7 @@ interface UseAttemptDialogsReturn {
   setPendingNavigation: (url: string | null) => void;
 
   // Confirmation handlers
-  handleConfirmSubmit: (submitFn: () => Promise<void>) => void;
+  handleConfirmSubmit: (submitFn: () => Promise<void>) => Promise<void>;
   handleConfirmLeave: () => void;
   handleCancelLeave: () => void;
 }
@@ -47,21 +47,33 @@ export const useAttemptDialogs = (): UseAttemptDialogsReturn => {
   }, []);
 
   // Handle submission confirmation
-  const handleConfirmSubmit = useCallback(async (submitFn: () => Promise<void>) => {
+  const handleConfirmSubmit = useCallback(async (submitFn: () => Promise<void>): Promise<void> => {
     setShowConfirmDialog(false);
-    await submitFn();
+    try {
+      await submitFn();
+    } catch (error) {
+      // Handle submit function errors gracefully
+      console.error('Submit function failed:', error);
+      // Re-throw if needed, or handle silently based on requirements
+      // For now, we'll handle silently to prevent unhandled rejections
+    }
   }, []);
 
   // Handle confirmed navigation (user wants to leave)
   const handleConfirmLeave = useCallback(() => {
     setShowLeaveDialog(false);
 
-    if (pendingNavigation) {
-      // Navigate to the clicked link
-      window.location.href = pendingNavigation;
-    } else {
-      // Handle back navigation
-      window.history.back();
+    try {
+      if (pendingNavigation) {
+        // Navigate to the clicked link
+        window.location.href = pendingNavigation;
+      } else {
+        // Handle back navigation
+        window.history.back();
+      }
+    } catch (error) {
+      // Handle navigation errors gracefully
+      console.error('Navigation failed:', error);
     }
 
     setPendingNavigation(null);

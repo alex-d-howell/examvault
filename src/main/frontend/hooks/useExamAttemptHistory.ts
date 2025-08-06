@@ -93,9 +93,15 @@ export const useExamAttemptHistory = (): UseExamAttemptHistoryReturn => {
   // Helper function to calculate time spent in seconds
   const getTimeSpent = useCallback((attempt: ExamAttempt): number => {
     if (!attempt.startTime || !attempt.endTime) return 0;
+    
     const start = new Date(attempt.startTime.toString()).getTime();
     const end = new Date(attempt.endTime.toString()).getTime();
-    return Math.round((end - start) / 1000); // Convert to seconds
+    
+    // Check if dates are valid (getTime() returns NaN for invalid dates)
+    if (isNaN(start) || isNaN(end)) return 0;
+    
+    const diffMs = end - start;
+    return Math.round(diffMs / 1000); // Convert to seconds
   }, []);
 
   // Computed statistics

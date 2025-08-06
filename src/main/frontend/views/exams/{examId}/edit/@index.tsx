@@ -1,4 +1,3 @@
-// edit/@index.tsx - REFACTORED VERSION (350 lines → 90 lines)
 import { useParams } from 'react-router';
 import { Button, Dialog, Icon } from "@vaadin/react-components";
 import { useAuth } from 'Frontend/hooks/useAuth';
@@ -35,7 +34,7 @@ export default function EditView() {
 
     const {
         // Exam state
-        exam, hasUnsavedChanges, selectedTags, updateExamField, updateTags,
+        exam, hasUnsavedChanges, updateExamField, updateTags,
         // Question builder state
         questionText, setQuestionText, options, addOption, removeOption, updateOption,
         correctAnswer, handleSingleCorrectAnswer, toggleMultipleCorrectAnswer,

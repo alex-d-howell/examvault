@@ -4,7 +4,7 @@ import type Exam from 'Frontend/generated/com/howell/examvault/base/domain/Exam'
 import type Question from 'Frontend/generated/com/howell/examvault/base/domain/Question';
 
 interface UseExamAttemptReturn {
-  // Core exam state
+  // Exam state
   exam: Exam | null;
   loading: boolean;
   error: string | null;
@@ -58,6 +58,8 @@ export const useExamAttempt = (examId: string | undefined): UseExamAttemptReturn
       try {
         setLoading(true);
         setError(null);
+        // Reset question index when loading new exam
+        setCurrentQuestionIndex(0);
 
         const fetchedExam = await ExamService.getExamById(examId);
 
@@ -126,7 +128,7 @@ export const useExamAttempt = (examId: string | undefined): UseExamAttemptReturn
   }, [currentQuestionIndex]);
 
   return {
-    // Core exam state
+    // Exam state
     exam,
     loading,
     error,

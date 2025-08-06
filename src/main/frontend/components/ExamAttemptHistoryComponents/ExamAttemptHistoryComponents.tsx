@@ -76,7 +76,7 @@ export const ExamAttemptsListModal: React.FC<ExamAttemptsListModalProps> = ({
                         Attempt History: {examTitle}
                     </h2>
                     <button className="exam-attempts-modal-close" onClick={onClose}>
-                        ✕
+                        X
                     </button>
                 </div>
 
@@ -90,7 +90,6 @@ export const ExamAttemptsListModal: React.FC<ExamAttemptsListModalProps> = ({
 
                     {isError && (
                         <div className="exam-attempts-error">
-                            <div className="exam-attempts-error-icon">⚠️</div>
                             <div>
                                 <h3>Error Loading Attempts</h3>
                                 <p>{error || 'Failed to load exam attempts'}</p>
@@ -121,8 +120,7 @@ export const ExamAttemptsListModal: React.FC<ExamAttemptsListModalProps> = ({
                             {/* Attempts List */}
                             {attempts.length === 0 ? (
                                 <div className="exam-attempts-empty">
-                                    <div className="exam-attempts-empty-icon">📝</div>
-                                    <h3>No Attempts Yet</h3>
+                                    <h3>No Attempts Yet...</h3>
                                     <p>You haven't attempted this exam yet.</p>
                                 </div>
                             ) : (
@@ -240,13 +238,13 @@ export const ExamAttemptDetailModal: React.FC<ExamAttemptDetailModalProps> = ({
             <div className="exam-attempts-modal exam-attempts-detail-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="exam-attempts-modal-header">
                     <button className="exam-attempts-back-button" onClick={onBack}>
-                        ← Back
+                        Back
                     </button>
                     <h2 className="exam-attempts-modal-title">
                         Attempt Details: {examTitle}
                     </h2>
                     <button className="exam-attempts-modal-close" onClick={onClose}>
-                        ✕
+                        X
                     </button>
                 </div>
 
@@ -287,7 +285,6 @@ export const ExamAttemptDetailModal: React.FC<ExamAttemptDetailModalProps> = ({
 
                         {!attempt.selectedAnswers || attempt.selectedAnswers.length === 0 ? (
                             <div className="exam-attempts-empty">
-                                <div className="exam-attempts-empty-icon">📝</div>
                                 <h4>No Detailed Results</h4>
                                 <p>Detailed question-by-question results are not available for this attempt.</p>
                             </div>

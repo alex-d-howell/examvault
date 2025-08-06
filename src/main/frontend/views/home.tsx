@@ -26,13 +26,11 @@ export default function HomeView() {
         isProtectedRoute: true
     });
 
-    const { 
-        myExams, 
-        myAttempts, 
-        dashboardStats, 
-        loadingData, 
-        error 
-    } = useDashboard(authenticated, authInitialized, loading);
+    const {
+        myExams,
+        myAttempts,
+        dashboardStats,
+        loadingData } = useDashboard(authenticated, authInitialized, loading);
 
     const examAttemptsModal = useExamAttemptsModal();
 
@@ -88,7 +86,7 @@ export default function HomeView() {
                                         <Icon icon="vaadin:user-card" />
                                         Your Exams ({myExams.length})
                                     </h3>
-                                    <Button 
+                                    <Button
                                         theme="tertiary small"
                                         onClick={() => navigate('/exams/create')}
                                     >
@@ -109,7 +107,7 @@ export default function HomeView() {
                                 </div>
                                 {myExams.length > 4 && (
                                     <div className="section-footer">
-                                        <Button 
+                                        <Button
                                             theme="tertiary"
                                             onClick={() => navigate('/exams?filter=mine')}
                                         >
@@ -128,7 +126,7 @@ export default function HomeView() {
                                     My Attempts
                                 </h3>
                                 {myAttempts.length > 5 && (
-                                    <Button 
+                                    <Button
                                         theme="tertiary small"
                                         onClick={() => navigate('/attempts')} // You'd need this route
                                     >
@@ -247,7 +245,7 @@ const DashboardStatsOverview = ({ stats }: { stats: any }) => (
                     <span className="stat-trend positive">{stats.recentActivity} this week</span>
                 </div>
             </div>
-            
+
             <div className="stat-card secondary">
                 <div className="stat-icon">
                     <Icon icon="vaadin:book" />
@@ -258,7 +256,7 @@ const DashboardStatsOverview = ({ stats }: { stats: any }) => (
                     <span className="stat-trend neutral">Different topics</span>
                 </div>
             </div>
-            
+
             <div className="stat-card accent">
                 <div className="stat-icon">
                     <Icon icon="vaadin:edit" />
@@ -269,7 +267,7 @@ const DashboardStatsOverview = ({ stats }: { stats: any }) => (
                     <span className="stat-trend neutral">Your contributions</span>
                 </div>
             </div>
-            
+
             <div className="stat-card info">
                 <div className="stat-icon">
                     <Icon icon="vaadin:fire" />

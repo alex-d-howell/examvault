@@ -1,325 +1,365 @@
 import React from 'react';
 import { useTagInput, useTags } from '../../hooks/useTags';
 
-// Props for the main tag input component
-interface TagInputProps {
-    selectedTags: string[];
-    onTagsChange: (tags: string[]) => void;
-    placeholder?: string;
-    maxTags?: number;
-    className?: string;
-    label?: string;
-    hint?: string;
-}
-
-// Props for displaying tags (read-only)
-interface TagDisplayProps {
-    tags: string[];
-    onTagClick?: (tag: string) => void;
-    maxVisible?: number;
-    className?: string;
-}
-
-// Individual tag chip component
+// ========== TagChip ==========
 interface TagChipProps {
-    tag: string;
-    onRemove?: (tag: string) => void;
-    onClick?: (tag: string) => void;
-    variant?: 'default' | 'clickable' | 'removable';
-    size?: 'small' | 'medium';
+  tag: string;
+  onRemove?: (tag: string) => void;
+  onClick?: (tag: string) => void;
+  variant?: 'default' | 'clickable' | 'removable';
+  size?: 'small' | 'medium';
 }
 
-// Tag chip component
 export const TagChip: React.FC<TagChipProps> = ({
-    tag,
-    onRemove,
-    onClick,
-    variant = 'default',
-    size = 'medium'
+  tag,
+  onRemove,
+  onClick,
+  variant = 'default',
+  size = 'medium'
 }) => {
-    const sizeClass = size === 'small' ? 'tag-chip-small' : 'tag-chip-medium';
-    const variantClass = variant === 'clickable' ? 'tag-chip-clickable' :
-        variant === 'removable' ? 'tag-chip-removable' : 'tag-chip-default';
+  const sizeClass = size === 'small' ? 'tag-chip-small' : 'tag-chip-medium';
+  const variantClass = variant === 'clickable'
+    ? 'tag-chip-clickable'
+    : variant === 'removable'
+      ? 'tag-chip-removable'
+      : 'tag-chip-default';
 
-    const handleClick = () => {
-        if (onClick && variant === 'clickable') {
-            onClick(tag);
-        }
-    };
+  const handleClick = () => {
+    if (onClick && variant === 'clickable') {
+      onClick(tag);
+    }
+  };
 
-    const handleRemove = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (onRemove) {
-            onRemove(tag);
-        }
-    };
+  const handleRemove = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onRemove) {
+      onRemove(tag);
+    }
+  };
 
-    return (
-        <span
-            className={`tag-chip ${sizeClass} ${variantClass}`}
-            onClick={handleClick}
-            style={{ cursor: variant === 'clickable' ? 'pointer' : 'default' }}
+  return (
+    <span
+      className={`tag-chip ${sizeClass} ${variantClass}`}
+      onClick={handleClick}
+      style={{ cursor: variant === 'clickable' ? 'pointer' : 'default' }}
+    >
+      {tag}
+      {variant === 'removable' && (
+        <button
+          type="button"
+          onClick={handleRemove}
+          className="tag-remove"
+          aria-label={`Remove tag ${tag}`}
         >
-            {tag}
-            {variant === 'removable' && (
-                <button
-                    type="button"
-                    onClick={handleRemove}
-                    className="tag-remove"
-                    aria-label={`Remove tag ${tag}`}
-                >
-                    ×
-                </button>
-            )}
-        </span>
-    );
+          x
+        </button>
+      )}
+    </span>
+  );
 };
 
-// Tag display component (read-only)
+// ========== TagDisplay ==========
+interface TagDisplayProps {
+  tags: string[];
+  onTagClick?: (tag: string) => void;
+  maxVisible?: number;
+  className?: string;
+}
+
 export const TagDisplay: React.FC<TagDisplayProps> = ({
-    tags,
-    onTagClick,
-    maxVisible,
-    className = ''
+  tags,
+  onTagClick,
+  maxVisible,
+  className = ''
 }) => {
-    if (!tags || tags.length === 0) return null;
+  if (!Array.isArray(tags) || tags.length === 0) return null;
 
-    const visibleTags = maxVisible ? tags.slice(0, maxVisible) : tags;
-    const hiddenCount = maxVisible && tags.length > maxVisible ? tags.length - maxVisible : 0;
+  const hasMax = typeof maxVisible === 'number';
+  const visibleTags = hasMax ? tags.slice(0, maxVisible) : tags;
+  const hiddenCount = hasMax && tags.length > maxVisible! ? tags.length - maxVisible! : 0;
 
-    return (
-        <div className={`tag-display ${className}`}>
-            {visibleTags.map((tag, index) => (
-                <TagChip
-                    key={index}
-                    tag={tag}
-                    variant={onTagClick ? 'clickable' : 'default'}
-                    onClick={onTagClick}
-                />
-            ))}
-            {hiddenCount > 0 && (
-                <span className="tag-more">
-                    +{hiddenCount} more
-                </span>
-            )}
-        </div>
-    );
+  return (
+    <div className={`tag-display ${className}`}>
+      {visibleTags.map((tag, index) => (
+        <TagChip
+          key={index}
+          tag={tag}
+          variant={onTagClick ? 'clickable' : 'default'}
+          onClick={onTagClick}
+        />
+      ))}
+      {hiddenCount > 0 && (
+        <span className="tag-more">
+          +{hiddenCount} more
+        </span>
+      )}
+    </div>
+  );
 };
 
-// Main tag input component with typeahead
+// ========== TagInput ==========
+interface TagInputProps {
+  selectedTags: string[];
+  onTagsChange: (tags: string[]) => void;
+  placeholder?: string;
+  maxTags?: number;
+  className?: string;
+  label?: string;
+  hint?: string;
+}
+
 export const TagInput: React.FC<TagInputProps> = ({
-    selectedTags,
-    onTagsChange,
-    placeholder = "Start typing to add tags...",
-    maxTags = 10,
-    className = '',
-    label,
-    hint
+  selectedTags,
+  onTagsChange,
+  placeholder = "Start typing to add tags...",
+  maxTags = 10,
+  className = '',
+  label,
+  hint
 }) => {
-    const { tags, addTag: addToGlobalCache } = useTags();
-    const tagInput = useTagInput(selectedTags); // Pass selectedTags to hook
+  const safeSelectedTags = Array.isArray(selectedTags) ? selectedTags : [];
 
-    const canAddMoreTags = selectedTags.length < maxTags;
+  let tagsResult;
+  try {
+    tagsResult = useTags();
+  } catch {
+    tagsResult = null;
+  }
+  const {
+    tags = [],
+    addTag: addToGlobalCache = () => {}
+  } = tagsResult ?? {};
 
-    // Handle adding a tag
-    const handleAddTag = (tag: string) => {
-        const trimmed = tag.trim();
-        if (tagInput.isValidTag(trimmed) && !selectedTags.includes(trimmed)) {
-            // Add to global cache if it's a new tag
-            if (!tags.includes(trimmed)) {
-                addToGlobalCache(trimmed);
-            }
+  let tagInputResult;
+  try {
+    tagInputResult = useTagInput(safeSelectedTags);
+  } catch {
+    tagInputResult = null;
+  }
+  const {
+    tagInput = '',
+    setTagInput = () => {},
+    showTagSuggestions = false,
+    setShowTagSuggestions = () => {},
+    filteredTags = [],
+    isValidTag = () => false,
+    clearTagInput = () => {},
+    handleTagInputFocus = () => {},
+    handleTagInputBlur = () => {}
+  } = tagInputResult ?? {};
 
-            onTagsChange([...selectedTags, trimmed]);
-            tagInput.clearTagInput();
-        }
-    };
+  const canAddMoreTags = safeSelectedTags.length < maxTags;
 
-    // Handle removing a tag
-    const handleRemoveTag = (tagToRemove: string) => {
-        onTagsChange(selectedTags.filter(tag => tag !== tagToRemove));
-    };
+  const handleAddTag = (tag: string) => {
+    const trimmed = tag.trim();
+    if (isValidTag(trimmed) && !safeSelectedTags.includes(trimmed)) {
+      if (!tags.includes(trimmed)) {
+        addToGlobalCache(trimmed);
+      }
+      onTagsChange([...safeSelectedTags, trimmed]);
+      clearTagInput();
+    }
+  };
 
-    // Modified keyboard handler
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            if (tagInput.tagInput.trim()) {
-                handleAddTag(tagInput.tagInput.trim());
-            }
-        } else if (e.key === 'Escape') {
-            tagInput.setShowTagSuggestions(false);
-        }
-    };
+  const handleRemoveTag = (tagToRemove: string) => {
+    onTagsChange(safeSelectedTags.filter(tag => tag !== tagToRemove));
+  };
 
-    return (
-        <div className={`tag-input-component ${className}`}>
-            {label && (
-                <label className="form-label">
-                    {label}
-                    {hint && <span className="form-label-hint">{hint}</span>}
-                </label>
-            )}
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (tagInput.trim()) {
+        handleAddTag(tagInput.trim());
+      }
+    } else if (e.key === 'Escape') {
+      setShowTagSuggestions(false);
+    }
+  };
 
-            {/* Display selected tags */}
-            {selectedTags.length > 0 && (
-                <div className="selected-tags">
-                    {selectedTags.map((tag, index) => (
-                        <TagChip
-                            key={index}
-                            tag={tag}
-                            variant="removable"
-                            onRemove={handleRemoveTag}
-                        />
-                    ))}
-                </div>
-            )}
+  return (
+    <div className={`tag-input-component ${className}`}>
+      {label && (
+        <label className="form-label">
+          {label}
+          {hint && <span className="form-label-hint">{hint}</span>}
+        </label>
+      )}
 
-            {/* Tag input with typeahead */}
-            {canAddMoreTags && (
-                <div className="tag-input-container">
-                    <input
-                        type="text"
-                        value={tagInput.tagInput}
-                        onChange={(e) => tagInput.setTagInput(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        onFocus={tagInput.handleTagInputFocus}
-                        onBlur={tagInput.handleTagInputBlur}
-                        className="form-input tag-input"
-                        placeholder={placeholder}
-                        maxLength={50}
-                    />
-
-                    {/* Tag suggestions */}
-                    {tagInput.showTagSuggestions && (
-                        <div className="tag-suggestions">
-                            {tagInput.filteredTags.slice(0, 5).map((tag, index) => (
-                                <button
-                                    key={index}
-                                    type="button"
-                                    onClick={() => handleAddTag(tag)}
-                                    className="tag-suggestion"
-                                >
-                                    {tag}
-                                </button>
-                            ))}
-                            {tagInput.tagInput.trim() &&
-                                tagInput.isValidTag(tagInput.tagInput.trim()) &&
-                                !tagInput.filteredTags.includes(tagInput.tagInput.trim()) && (
-                                    <button
-                                        type="button"
-                                        onClick={() => handleAddTag(tagInput.tagInput.trim())}
-                                        className="tag-suggestion tag-suggestion-new"
-                                    >
-                                        Create "{tagInput.tagInput.trim()}"
-                                    </button>
-                                )}
-                        </div>
-                    )}
-                </div>
-            )}
-
-            <div className="tag-help-text">
-                {selectedTags.length}/{maxTags} tags added
-            </div>
+      {safeSelectedTags.length > 0 && (
+        <div className="selected-tags">
+          {safeSelectedTags.map((tag, index) => (
+            <TagChip
+              key={index}
+              tag={tag}
+              variant="removable"
+              onRemove={handleRemoveTag}
+            />
+          ))}
         </div>
-    );
+      )}
+
+      {canAddMoreTags && (
+        <div className="tag-input-container">
+          <input
+            type="text"
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={handleTagInputFocus}
+            onBlur={handleTagInputBlur}
+            className="form-input tag-input"
+            placeholder={placeholder}
+            maxLength={50}
+          />
+          {showTagSuggestions && (
+            <div className="tag-suggestions">
+              {filteredTags.slice(0, 5).map((tag, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => handleAddTag(tag)}
+                  className="tag-suggestion"
+                >
+                  {tag}
+                </button>
+              ))}
+              {tagInput.trim() &&
+                isValidTag(tagInput.trim()) &&
+                !filteredTags.includes(tagInput.trim()) && (
+                  <button
+                    type="button"
+                    onClick={() => handleAddTag(tagInput.trim())}
+                    className="tag-suggestion tag-suggestion-new"
+                  >
+                    Create "{tagInput.trim()}"
+                  </button>
+                )}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="tag-help-text">
+        {safeSelectedTags.length}/{maxTags} tags added
+      </div>
+    </div>
+  );
 };
 
-// Search-specific tag input (for the exams search page)
+// ========== TagSearch ==========
 interface TagSearchProps {
-    selectedTags: string[];
-    onTagsChange: (tags: string[]) => void;
-    className?: string;
+  selectedTags: string[];
+  onTagsChange: (tags: string[]) => void;
+  className?: string;
 }
 
 export const TagSearch: React.FC<TagSearchProps> = ({
-    selectedTags,
-    onTagsChange,
-    className = ''
+  selectedTags,
+  onTagsChange,
+  className = ''
 }) => {
-    const { tags, addTag: addToGlobalCache } = useTags();
-    const tagInput = useTagInput(selectedTags); // Pass selectedTags to hook
+  const safeSelectedTags = Array.isArray(selectedTags) ? selectedTags : [];
 
-    // Handle adding a tag
-    const handleAddTag = (tag: string) => {
-        const trimmed = tag.trim();
-        if (tagInput.isValidTag(trimmed) && !selectedTags.includes(trimmed)) {
-            // Add to global cache if it's a new tag
-            if (!tags.includes(trimmed)) {
-                addToGlobalCache(trimmed);
-            }
+  let tagsResult;
+  try {
+    tagsResult = useTags();
+  } catch {
+    tagsResult = null;
+  }
+  const {
+    tags = [],
+    addTag: addToGlobalCache = () => {}
+  } = tagsResult ?? {};
 
-            onTagsChange([...selectedTags, trimmed]);
-            tagInput.clearTagInput();
-        }
-    };
+  let tagInputResult;
+  try {
+    tagInputResult = useTagInput(safeSelectedTags);
+  } catch {
+    tagInputResult = null;
+  }
+  const {
+    tagInput = '',
+    setTagInput = () => {},
+    showTagSuggestions = false,
+    setShowTagSuggestions = () => {},
+    filteredTags = [],
+    isValidTag = () => false,
+    clearTagInput = () => {},
+    handleTagInputFocus = () => {},
+    handleTagInputBlur = () => {}
+  } = tagInputResult ?? {};
 
-    // Handle removing a tag
-    const handleRemoveTag = (tagToRemove: string) => {
-        onTagsChange(selectedTags.filter(tag => tag !== tagToRemove));
-    };
+  const handleAddTag = (tag: string) => {
+    const trimmed = tag.trim();
+    if (isValidTag(trimmed) && !safeSelectedTags.includes(trimmed)) {
+      if (!tags.includes(trimmed)) {
+        addToGlobalCache(trimmed);
+      }
+      onTagsChange([...safeSelectedTags, trimmed]);
+      clearTagInput();
+    }
+  };
 
-    // Modified keyboard handler
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            if (tagInput.tagInput.trim()) {
-                handleAddTag(tagInput.tagInput.trim());
-            }
-        } else if (e.key === 'Escape') {
-            tagInput.setShowTagSuggestions(false);
-        }
-    };
+  const handleRemoveTag = (tagToRemove: string) => {
+    onTagsChange(safeSelectedTags.filter(tag => tag !== tagToRemove));
+  };
 
-    return (
-        <div className={`tag-search-section ${className}`}>
-            <label className="tag-search-label">Filter by Tags:</label>
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (tagInput.trim()) {
+        handleAddTag(tagInput.trim());
+      }
+    } else if (e.key === 'Escape') {
+      setShowTagSuggestions(false);
+    }
+  };
 
-            {/* Display selected tags */}
-            {selectedTags.length > 0 && (
-                <div className="selected-tags">
-                    {selectedTags.map((tag, index) => (
-                        <TagChip
-                            key={index}
-                            tag={tag}
-                            variant="removable"
-                            onRemove={handleRemoveTag}
-                            size="small"
-                        />
-                    ))}
-                </div>
-            )}
+  return (
+    <div className={`tag-search-section ${className}`}>
+      <label className="tag-search-label">Filter by Tags:</label>
 
-            {/* Tag input with typeahead */}
-            <div className="tag-search-input-container">
-                <input
-                    type="text"
-                    value={tagInput.tagInput}
-                    onChange={(e) => tagInput.setTagInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    onFocus={tagInput.handleTagInputFocus}
-                    onBlur={tagInput.handleTagInputBlur}
-                    className="tag-search-input"
-                    placeholder="Add tags to filter..."
-                />
-
-                {/* Tag suggestions */}
-                {tagInput.showTagSuggestions && (
-                    <div className="tag-search-suggestions">
-                        {tagInput.filteredTags.slice(0, 5).map((tag, index) => (
-                            <button
-                                key={index}
-                                type="button"
-                                onClick={() => handleAddTag(tag)}
-                                className="tag-search-suggestion"
-                            >
-                                {tag}
-                            </button>
-                        ))}
-                    </div>
-                )}
-            </div>
+      {safeSelectedTags.length > 0 && (
+        <div className="selected-tags">
+          {safeSelectedTags.map((tag, index) => (
+            <TagChip
+              key={index}
+              tag={tag}
+              variant="removable"
+              onRemove={handleRemoveTag}
+              size="small"
+            />
+          ))}
         </div>
-    );
+      )}
+
+      <div className="tag-search-input-container">
+        <input
+          type="text"
+          value={tagInput}
+          onChange={(e) => setTagInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onFocus={handleTagInputFocus}
+          onBlur={handleTagInputBlur}
+          className="tag-search-input"
+          placeholder="Add tags to filter..."
+        />
+
+        {showTagSuggestions && (
+          <div className="tag-search-suggestions">
+            {filteredTags.slice(0, 5).map((tag, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => handleAddTag(tag)}
+                className="tag-search-suggestion"
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };

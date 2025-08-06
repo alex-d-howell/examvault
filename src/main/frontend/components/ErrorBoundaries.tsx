@@ -63,7 +63,7 @@ class BaseErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState
           marginRight: 'auto'
         }}>
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>😵</div>
-          
+
           <h2 style={{
             color: '#dc2626',
             fontSize: '1.5rem',
@@ -72,7 +72,7 @@ class BaseErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState
           }}>
             Oops! Something went wrong
           </h2>
-          
+
           <p style={{
             color: '#7f1d1d',
             marginBottom: '2rem',
@@ -104,7 +104,7 @@ class BaseErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState
                 Try Again ({(this.props.maxRetries || 3) - this.state.retryCount} left)
               </button>
             )}
-            
+
             <button
               onClick={() => window.location.reload()}
               style={{

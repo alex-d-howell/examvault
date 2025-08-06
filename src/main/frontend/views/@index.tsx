@@ -1,4 +1,3 @@
-// @index.tsx - REFACTORED VERSION (200 lines → 50 lines)
 import { useAuth } from 'Frontend/hooks/useAuth';
 import { useNavigate } from 'react-router';
 import { Button, Icon } from '@vaadin/react-components';
@@ -66,10 +65,13 @@ const LandingPage = ({ onBrowseExams, onSignIn }: {
     onBrowseExams: () => void;
     onSignIn: () => void;
 }) => (
-    <div style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)'
-    }}>
+    <div
+        data-testid="landing-page"
+        style={{
+            minHeight: '100vh',
+            background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)'
+        }}
+    >
         {/* Hero Section */}
         <div style={{ overflow: 'hidden' }}>
             <div style={{
@@ -148,13 +150,16 @@ const LandingPage = ({ onBrowseExams, onSignIn }: {
 );
 
 const FeatureCards = () => (
-    <div style={{
-        display: 'grid',
-        gridTemplateColumns: window.innerWidth < 768 ? '1fr' : 'repeat(3, 1fr)',
-        gap: '2rem',
-        maxWidth: '64rem',
-        margin: '0 auto'
-    }}>
+    <div
+        data-testid="feature-cards"
+        style={{
+            display: 'grid',
+            gridTemplateColumns: window.innerWidth < 768 ? '1fr' : 'repeat(3, 1fr)',
+            gap: '2rem',
+            maxWidth: '64rem',
+            margin: '0 auto'
+        }}
+    >
         {[
             {
                 icon: 'vaadin:book',
@@ -190,14 +195,16 @@ const FeatureCard = ({ icon, title, description, color, bgColor }: {
     color: string;
     bgColor: string;
 }) => (
-    <div style={{
-        backgroundColor: 'white',
-        padding: '2rem',
-        borderRadius: '1rem',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-        border: '1px solid #e5e7eb',
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease'
-    }}
+    <div
+        data-testid="feature-card"
+        style={{
+            backgroundColor: 'white',
+            padding: '2rem',
+            borderRadius: '1rem',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e5e7eb',
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+        }}
         onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-4px)';
             e.currentTarget.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.1)';
@@ -228,7 +235,7 @@ const FeatureCard = ({ icon, title, description, color, bgColor }: {
 );
 
 const SignInBenefits = ({ onSignIn }: { onSignIn: () => void }) => (
-    <div style={{ backgroundColor: 'white', padding: '4rem 0' }}>
+    <div data-testid="sign-in-benefits" style={{ backgroundColor: 'white', padding: '4rem 0' }}>
         <div style={{
             maxWidth: '64rem',
             margin: '0 auto',

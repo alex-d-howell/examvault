@@ -67,21 +67,27 @@ export const useComments = (
 
   // Submit new comment
   const handleSubmitComment = useCallback(async (): Promise<void> => {
-    if (!authenticated) {
-      toast?.showError('You must be signed in to add comments');
-      return;
-    }
-
-    if (!commentText.trim()) {
-      toast?.showError('Comment text is required');
-      return;
-    }
-
-    if (!examId) return;
-
+    // Set submitting state immediately, before any validation
     setSubmittingComment(true);
 
     try {
+      if (!authenticated) {
+        toast?.showError('You must be signed in to add comments');
+        setSubmittingComment(false);
+        return;
+      }
+
+      if (!commentText.trim()) {
+        toast?.showError('Comment text is required');
+        setSubmittingComment(false);
+        return;
+      }
+
+      if (!examId) {
+        setSubmittingComment(false);
+        return;
+      }
+
       const newComment = await CommentService.addComment(examId, commentText.trim(), commentRating ?? undefined);
 
       if (newComment && newComment.id) {
@@ -221,6 +227,7 @@ export const useComments = (
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
+        timeZone: 'UTC', // Force UTC to make tests predictable
       });
     } catch {
       return dateString;

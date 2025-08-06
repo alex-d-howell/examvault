@@ -40,7 +40,7 @@ export const useExamForm = (formOptions: UseExamFormOptions) => {
   const { mode, examId, authenticated, authInitialized = true, authLoading = false } = formOptions;
   const navigate = useNavigate();
 
-  // Loading state (only for edit mode)
+  // Loading state for editing
   const [loadingState, setLoadingState] = useState<LoadingState>({
     isLoading: mode === 'edit',
     checkingAuth: mode === 'edit' && !authInitialized,
@@ -56,7 +56,7 @@ export const useExamForm = (formOptions: UseExamFormOptions) => {
     tags: [],
   });
 
-  // Edit-specific: original exam for change detection
+  // Original exam for change detection in edit
   const [originalExam, setOriginalExam] = useState<Exam | null>(null);
   const [canEdit, setCanEdit] = useState<boolean>(false);
 
@@ -81,12 +81,12 @@ export const useExamForm = (formOptions: UseExamFormOptions) => {
   const [submissionStage, setSubmissionStage] = useState<SubmissionStage>('idle');
   const [submitMessage, setSubmitMessage] = useState<SubmitMessage | null>(null);
 
-  // Edit-specific: unsaved changes dialog
+  // Unsaved changes dialog
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Computed properties
   const hasUnsavedChanges = useMemo(() => {
-    if (mode === 'create') return true; // Always consider create form as having changes
+    if (mode === 'create') return true;
     if (!originalExam || !exam) return false;
     return JSON.stringify(originalExam) !== JSON.stringify(exam);
   }, [mode, originalExam, exam]);
@@ -239,6 +239,10 @@ export const useExamForm = (formOptions: UseExamFormOptions) => {
           return;
         }
 
+        if (!loadedExam.questions) {
+          loadedExam.questions = [];
+        }
+
         if (!loadedExam.tags) {
           loadedExam.tags = [];
         }
@@ -266,7 +270,7 @@ export const useExamForm = (formOptions: UseExamFormOptions) => {
     initializeEdit();
   }, [mode, authenticated, authInitialized, authLoading, examId, navigate]);
 
-  // Create mode: Check authentication
+  // Check authentication for creating an exam
   useEffect(() => {
     if (mode !== 'create') return;
 
@@ -278,42 +282,65 @@ export const useExamForm = (formOptions: UseExamFormOptions) => {
 
   // Shared question management functions
   const addOption = useCallback((): void => {
-    if (options.length < APP_CONFIG.FORMS.MAX_OPTIONS_COUNT) {
-      setOptions([...options, '']);
-    }
-  }, [options]);
+    setOptions((prev) => {
+      if (prev.length >= APP_CONFIG.FORMS.MAX_OPTIONS_COUNT) {
+        return prev;
+      }
+      return [...prev, ''];
+    });
+  }, []);
 
   const removeOption = useCallback(
     (index: number): void => {
-      if (options.length > APP_CONFIG.FORMS.MIN_OPTIONS_COUNT) {
-        const removedOption = options[index];
-        const newOptions = options.filter((_, i) => i !== index);
-        setOptions(newOptions);
-        setCorrectAnswer((prev) => prev.filter((answer) => answer !== removedOption));
-      }
+      setOptions((prev) => {
+        if (prev.length <= APP_CONFIG.FORMS.MIN_OPTIONS_COUNT) {
+          return prev;
+        }
+        const removedOption = prev[index];
+        const newOptions = prev.filter((_, i) => i !== index);
+        
+        // Update correct answers to remove the deleted option
+        setCorrectAnswer((prevAnswers) => 
+          prevAnswers.filter((answer) => answer !== removedOption)
+        );
+        
+        return newOptions;
+      });
     },
-    [options]
+    []
   );
 
   const updateOption = useCallback(
     (index: number, value: string): void => {
-      const oldValue = options[index];
-      const newOptions = [...options];
-      newOptions[index] = value;
-      setOptions(newOptions);
-      setCorrectAnswer((prev) => prev.map((answer) => (answer === oldValue ? value : answer)));
+      setOptions((prev) => {
+        const oldValue = prev[index];
+        const newOptions = [...prev];
+        newOptions[index] = value;
+        
+        // Update correct answers if the option text changed
+        setCorrectAnswer((prevAnswers) =>
+          prevAnswers.map((answer) => (answer === oldValue ? value : answer))
+        );
+        
+        return newOptions;
+      });
     },
-    [options]
+    []
   );
 
   const handleSingleCorrectAnswer = useCallback((option: string): void => {
     setCorrectAnswer([option]);
+    setIsMultipleAnswers(false);
   }, []);
 
   const toggleMultipleCorrectAnswer = useCallback((option: string): void => {
-    setCorrectAnswer((prev) =>
-      prev.includes(option) ? prev.filter((answer) => answer !== option) : [...prev, option]
-    );
+    setCorrectAnswer((prev) => {
+      const newAnswers = prev.includes(option)
+        ? prev.filter((answer) => answer !== option)
+        : [...prev, option];
+      return newAnswers;
+    });
+    setIsMultipleAnswers(true);
   }, []);
 
   const resetQuestionForm = useCallback((): void => {
@@ -327,28 +354,27 @@ export const useExamForm = (formOptions: UseExamFormOptions) => {
   }, []);
 
   const addQuestion = useCallback((): void => {
-    if (!isQuestionValid) return;
+    if (!isQuestionValid) {
+      return;
+    }
 
     const question = {
-      questionText: questionText,
-      options: [...options],
+      questionText: questionText.trim(),
+      options: options.filter((opt) => opt.trim()),
       correctAnswers: [...correctAnswer],
-      isMultipleAnswers: isMultipleAnswers,
+      isMultipleAnswers,
       explanation: explanation.trim() || undefined,
     };
 
-    if (isEditMode && editingQuestionIndex !== null) {
-      setExam((prev) => {
-        const updatedQuestions = [...(prev.questions || [])];
+    setExam((prev) => {
+      const updatedQuestions = [...(prev.questions || [])];
+      if (isEditMode && editingQuestionIndex !== null) {
         updatedQuestions[editingQuestionIndex] = question;
-        return { ...prev, questions: updatedQuestions };
-      });
-    } else {
-      setExam((prev) => ({
-        ...prev,
-        questions: [...(prev.questions || []), question],
-      }));
-    }
+      } else {
+        updatedQuestions.push(question);
+      }
+      return { ...prev, questions: updatedQuestions };
+    });
 
     resetQuestionForm();
   }, [
@@ -365,8 +391,14 @@ export const useExamForm = (formOptions: UseExamFormOptions) => {
 
   const startEditQuestion = useCallback(
     (questionIndex: number): void => {
-      const question = exam.questions?.[questionIndex];
-      if (!question) return;
+      if (!exam.questions) {
+        return;
+      }
+
+      const question = exam.questions[questionIndex];
+      if (!question) {
+        return;
+      }
 
       setQuestionText(question.questionText || '');
       setOptions(question.options ? question.options.filter((opt): opt is string => opt != null) : ['', '']);
@@ -378,7 +410,6 @@ export const useExamForm = (formOptions: UseExamFormOptions) => {
       setEditingQuestionIndex(questionIndex);
       setIsEditMode(true);
 
-      // Scroll to question builder
       setTimeout(() => {
         document.querySelector('.exam-section:nth-child(3)')?.scrollIntoView({
           behavior: 'smooth',
@@ -391,10 +422,10 @@ export const useExamForm = (formOptions: UseExamFormOptions) => {
 
   const removeQuestion = useCallback(
     (questionIndex: number): void => {
-      setExam((prev) => ({
-        ...prev,
-        questions: prev.questions?.filter((_, index) => index !== questionIndex) || [],
-      }));
+      setExam((prev) => {
+        const newQuestions = (prev.questions || []).filter((_, index) => index !== questionIndex);
+        return { ...prev, questions: newQuestions };
+      });
 
       if (editingQuestionIndex === questionIndex) {
         resetQuestionForm();
@@ -423,7 +454,9 @@ export const useExamForm = (formOptions: UseExamFormOptions) => {
 
   // Mode-specific submission
   const submitExam = useCallback(async (): Promise<void> => {
-    if (!isExamValid || !authenticated) return;
+    if (!isExamValid || !authenticated) {
+      return;
+    }
 
     setIsSubmitting(true);
     setSubmissionStage('saving');
@@ -532,7 +565,10 @@ export const useExamForm = (formOptions: UseExamFormOptions) => {
 
   // Edit-specific: Navigation with unsaved changes check
   const goBack = useCallback((): void => {
-    if (mode !== 'edit') return;
+    if (mode !== 'edit') {
+      navigate(ROUTES.EXAMS);
+      return;
+    }
 
     if (hasUnsavedChanges) {
       setIsDialogOpen(true);
@@ -552,20 +588,15 @@ export const useExamForm = (formOptions: UseExamFormOptions) => {
 
   // Return all state and handlers
   return {
-    // Mode and loading (edit-specific)
     mode,
     loadingState,
     canEdit,
-
-    // Exam state
     exam,
     originalExam,
     hasUnsavedChanges,
     selectedTags,
     updateExamField,
     updateTags,
-
-    // Question builder
     questionText,
     setQuestionText,
     options,
@@ -579,34 +610,24 @@ export const useExamForm = (formOptions: UseExamFormOptions) => {
     setIsMultipleAnswers,
     explanation,
     setExplanation,
-
-    // Question management
     addQuestion,
     startEditQuestion,
     removeQuestion,
     cancelEdit,
     editingQuestionIndex,
     isEditMode,
-
-    // Validation
     isQuestionValid,
     isExamValid,
     validationErrors,
-
-    // Submission
     isSubmitting,
     submissionStage,
     submitMessage,
     submitExam,
-
-    // Edit-specific features
     cancelAllChanges,
     goBack,
     isDialogOpen,
     handleConfirmLeave,
     handleCancelLeave,
-
-    // Reset
     resetQuestionForm,
   };
 };

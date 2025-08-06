@@ -47,9 +47,12 @@ export default function CreateView() {
     editingQuestionIndex, isEditMode,
     // Validation
     isQuestionValid, isExamValid, validationErrors,
-    // Submission
-    isSubmitting, submissionStage, submitMessage, submitExam
+    submissionStage, submitMessage, submitExam
   } = examFormState;
+
+  // Add null safety
+  const safeExam = exam || { questions: [] };
+  const safeValidationErrors = validationErrors || {};
 
   return (
     <PageErrorBoundary>
@@ -67,8 +70,8 @@ export default function CreateView() {
 
         {/* Exam Details Form */}
         <ExamDetailsForm
-          exam={exam}
-          validationErrors={validationErrors}
+          exam={safeExam}
+          validationErrors={safeValidationErrors}
           updateExamField={updateExamField}
           updateTags={updateTags}
         />
@@ -79,7 +82,7 @@ export default function CreateView() {
           editingQuestionIndex={editingQuestionIndex}
           questionText={questionText}
           setQuestionText={setQuestionText}
-          validationErrors={validationErrors}
+          validationErrors={safeValidationErrors}
           options={options}
           addOption={addOption}
           updateOption={updateOption}
@@ -98,7 +101,7 @@ export default function CreateView() {
 
         {/* Questions List */}
         <QuestionsList
-          exam={exam}
+          exam={safeExam}
           editingQuestionIndex={editingQuestionIndex}
           startEditQuestion={startEditQuestion}
           removeQuestion={removeQuestion}
@@ -117,10 +120,10 @@ export default function CreateView() {
             </div>
           )}
 
-          {validationErrors.general && (
+          {safeValidationErrors.general && (
             <div className="validation-summary">
               <Icon icon="vaadin:exclamation-circle" />
-              {validationErrors.general}
+              {safeValidationErrors.general}
             </div>
           )}
 
@@ -153,13 +156,13 @@ export default function CreateView() {
             )}
           </button>
 
-          {!isExamValid && !validationErrors.general && (
+          {!isExamValid && !safeValidationErrors.general && (
             <div className="disabled-reason">
               <Icon icon="vaadin:info-circle" />
               {isEditMode ? 'Complete or cancel the current edit before submitting' :
-                !exam.questions?.length ? 'Add at least one question to create the exam' :
-                  validationErrors.title ? 'Fix exam title to continue' :
-                    validationErrors.description ? 'Fix exam description to continue' :
+                !safeExam.questions?.length ? 'Add at least one question to create the exam' :
+                  safeValidationErrors.title ? 'Fix exam title to continue' :
+                    safeValidationErrors.description ? 'Fix exam description to continue' :
                       'Complete all required fields to create exam'}
             </div>
           )}

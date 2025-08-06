@@ -93,7 +93,6 @@ export const DashboardExamCard: React.FC<DashboardExamCardProps> = ({
             }
         };
 
-        // Only load stats for exams the user has access to
         if (exam.id) {
             loadAttemptStats();
         }
@@ -150,7 +149,7 @@ export const DashboardExamCard: React.FC<DashboardExamCardProps> = ({
                 className="base-exam-card"
             />
 
-            {/* Enhanced: Attempt statistics section */}
+            {/* Attempt statistics section */}
             {loadingStats && (
                 <div className="exam-attempts-stats-loading">
                     <div className="loading-spinner-mini"></div>

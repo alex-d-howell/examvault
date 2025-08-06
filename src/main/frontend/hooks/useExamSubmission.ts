@@ -61,15 +61,17 @@ export const useExamSubmission = (authenticated: boolean, exam: Exam | null): Us
   const handleSignInToSave = useCallback(
     (examId: string, answers: AnswersState, startTime: Date, currentQuestionIndex: number) => {
       // Store current exam state for restoration after login
-      sessionStorage.setItem(
-        'examInProgress',
-        JSON.stringify({
-          examId,
-          answers,
-          startTime: startTime.toISOString(),
-          currentQuestionIndex,
-        })
-      );
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        sessionStorage.setItem(
+          'examInProgress',
+          JSON.stringify({
+            examId,
+            answers,
+            startTime: startTime.toISOString(),
+            currentQuestionIndex,
+          })
+        );
+      }
       navigate('/login');
     },
     [navigate]
@@ -78,23 +80,25 @@ export const useExamSubmission = (authenticated: boolean, exam: Exam | null): Us
   // Main submission function
   const submitExam = useCallback(
     async (answers: AnswersState, examId: string, startTime: Date) => {
-      // Validation
-      if (Object.keys(answers).length === 0) {
-        setSubmissionError('You must answer at least one question before submitting.');
-        return;
-      }
-
-      // For anonymous users, show save option first
-      if (!authenticated && !showSaveOption) {
-        setShowSaveOption(true);
-        return;
-      }
-
-      setSubmitting(true);
-      setSubmissionError(null);
-      setShowSaveOption(false);
-
       try {
+        // Clear any previous errors
+        setSubmissionError(null);
+
+        // Validation
+        if (Object.keys(answers).length === 0) {
+          setSubmissionError('You must answer at least one question before submitting.');
+          return;
+        }
+
+        // For anonymous users, show save option first
+        if (!authenticated && !showSaveOption) {
+          setShowSaveOption(true);
+          return;
+        }
+
+        setSubmitting(true);
+        setShowSaveOption(false);
+
         // Convert answers to the format expected by the backend
         const answersList = Object.entries(answers)
           .filter(([_, answerArray]) => answerArray.length > 0) // Only include answered questions
@@ -107,7 +111,7 @@ export const useExamSubmission = (authenticated: boolean, exam: Exam | null): Us
 
         const endTime = new Date();
 
-        // Submit exam attempt using the 4-parameter method
+        // Submit exam attempt
         const result = await ExamService.submitExamAttempt(
           examId,
           startTime.toISOString(),
@@ -157,7 +161,8 @@ export const useExamSubmission = (authenticated: boolean, exam: Exam | null): Us
 
         // Check if answer is correct (same length and contains all correct answers)
         const isCorrect =
-          userAnswer.length === correctAnswer.length && correctAnswer.every((correct) => userAnswer.includes(correct));
+          userAnswer.length === correctAnswer.length && 
+          correctAnswer.every((correct) => userAnswer.includes(correct));
 
         return {
           questionId: question.id,
@@ -171,11 +176,15 @@ export const useExamSubmission = (authenticated: boolean, exam: Exam | null): Us
 
   // Calculate score percentage
   const scorePercentage = useMemo(() => {
-    const totalQuestions = exam?.questions?.length || 1;
+    if (!exam?.questions || exam.questions.length === 0) {
+      return 0;
+    }
+    const totalQuestions = exam.questions.length;
     const correctCount = examAttempt?.numberCorrect || 0;
     return Math.round((correctCount / totalQuestions) * 100);
   }, [examAttempt?.numberCorrect, exam?.questions?.length]);
 
+  // Always return the same object structure
   return {
     // Submission state
     submitting,

@@ -31,11 +31,11 @@ export const MyAttempts: React.FC<MyAttemptsProps> = ({
             const now = new Date();
             const diffTime = Math.abs(now.getTime() - date.getTime());
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
+
             if (diffDays === 1) return 'Today';
             if (diffDays === 2) return 'Yesterday';
             if (diffDays <= 7) return `${diffDays - 1}d ago`;
-            
+
             return date.toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
@@ -48,16 +48,16 @@ export const MyAttempts: React.FC<MyAttemptsProps> = ({
 
     const formatTimeSpent = (startTime?: string, endTime?: string) => {
         if (!startTime || !endTime) return '0m';
-        
+
         try {
             const start = new Date(startTime);
             const end = new Date(endTime);
             const diffMs = end.getTime() - start.getTime();
             const diffMinutes = Math.floor(diffMs / (1000 * 60));
-            
+
             if (diffMinutes === 0) return '<1m';
             if (diffMinutes < 60) return `${diffMinutes}m`;
-            
+
             const hours = Math.floor(diffMinutes / 60);
             const remainingMinutes = diffMinutes % 60;
             return `${hours}h ${remainingMinutes}m`;
@@ -160,7 +160,7 @@ export const MyAttempts: React.FC<MyAttemptsProps> = ({
                     <Icon icon="vaadin:chart-timeline" className="empty-icon" />
                     <h4>No Attempts Yet</h4>
                     <p>Start taking exams to track your progress and see your attempt history here.</p>
-                    <Button 
+                    <Button
                         theme="primary small"
                         onClick={() => navigate('/exams')}
                     >
@@ -198,8 +198,8 @@ export const MyAttempts: React.FC<MyAttemptsProps> = ({
             <div className="attempts-controls">
                 <div className="controls-section">
                     <label className="control-label">Sort by:</label>
-                    <select 
-                        value={sortBy} 
+                    <select
+                        value={sortBy}
                         onChange={(e) => setSortBy(e.target.value as SortOption)}
                         className="control-select"
                     >
@@ -212,8 +212,8 @@ export const MyAttempts: React.FC<MyAttemptsProps> = ({
 
                 <div className="controls-section">
                     <label className="control-label">Filter:</label>
-                    <select 
-                        value={filterBy} 
+                    <select
+                        value={filterBy}
                         onChange={(e) => setFilterBy(e.target.value as FilterOption)}
                         className="control-select"
                     >
@@ -260,9 +260,9 @@ export const MyAttempts: React.FC<MyAttemptsProps> = ({
                                         </span>
                                     </div>
                                 </div>
-                                
+
                                 <div className="attempt-score-section">
-                                    <div 
+                                    <div
                                         className="score-badge"
                                         style={{ backgroundColor: scoreColor }}
                                     >
@@ -334,7 +334,7 @@ export const MyAttempts: React.FC<MyAttemptsProps> = ({
                 <div className="no-results">
                     <Icon icon="vaadin:filter" className="no-results-icon" />
                     <p>No attempts match your current filter.</p>
-                    <Button 
+                    <Button
                         theme="tertiary small"
                         onClick={() => setFilterBy('all')}
                     >
@@ -355,7 +355,7 @@ export const MyAttemptsLoading: React.FC = () => (
             <div className="stat-skeleton"></div>
             <div className="stat-skeleton"></div>
         </div>
-        
+
         {/* Controls skeleton */}
         <div className="controls-skeleton">
             <div className="control-skeleton"></div>

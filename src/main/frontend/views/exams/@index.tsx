@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import { Button, Icon, Select } from '@vaadin/react-components';
 import { useNavigate } from 'react-router';
 import { TagsProvider } from 'Frontend/hooks/useTags';
@@ -64,7 +64,6 @@ export default function ExamsView() {
 
   return (
     <TagsProvider>
-      {/* 🛡️ NEW: Wrap search in error boundary */}
       <SearchErrorBoundary>
         <div className="container">
           <AdvancedSearchComponent
@@ -76,7 +75,6 @@ export default function ExamsView() {
 
       {/* Results Section */}
       <div className="results-section container">
-        {/* Results Header */}
         <div className="results-header">
           <div className="results-info">
             <Icon icon="vaadin:list" />
@@ -84,12 +82,11 @@ export default function ExamsView() {
           </div>
 
           <div className="results-actions">
-            {/* Client-side sort dropdown */}
             {hasSearched && resultsCount > 0 && (
               <div className="flex items-center gap-sm">
                 <span className="text-sm text-gray-500">Sort by:</span>
                 <Select
-                  value="date" // This would be controlled by sortBy state
+                  value="date"
                   onChange={(e) => sortExams(e.target.value as ClientSortOption)}
                   theme="small"
                 >
@@ -114,13 +111,10 @@ export default function ExamsView() {
           </div>
         </div>
 
-        {/* 🛡️ NEW: Wrap exam grid in error boundary */}
         <ExamErrorBoundary>
           {loading ? (
-            // ✨ NEW: Enhanced professional loading skeletons
             <ExamListSkeleton count={APP_CONFIG.PAGINATION.LOADING_SKELETON_COUNT} layout="grid" />
           ) : sortedExams.length > 0 ? (
-            // 🚀 NEW: Smart virtual scrolling for large lists
             sortedExams.length > APP_CONFIG.SEARCH.VIRTUAL_SCROLL_THRESHOLD ? (
               <VirtualExamList
                 exams={sortedExams}
@@ -135,7 +129,6 @@ export default function ExamsView() {
                 className="virtual-exam-container"
               />
             ) : (
-              // Regular grid for smaller lists (< 50 exams)
               <div className="exam-grid">
                 {sortedExams.map((exam: Exam) => (
                   <MemoizedExamCard

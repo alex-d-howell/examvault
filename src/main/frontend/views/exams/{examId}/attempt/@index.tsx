@@ -7,11 +7,9 @@ import { useAnswerState } from 'Frontend/hooks/useAnswerState';
 import { useExamSubmission } from 'Frontend/hooks/useExamSubmission';
 import { useAttemptDialogs } from 'Frontend/hooks/useAttemptDialogs';
 import { useUnsavedChanges } from 'Frontend/hooks/useUnsavedChanges';
-
-
-import './attempt.css';
 import { ExamAttemptSkeleton, ResultsSkeleton } from "Frontend/components/AttemptLoadingSkeletons";
 import { ExamErrorBoundary, PageErrorBoundary } from "Frontend/components/ErrorBoundaries";
+import './attempt.css';
 
 export default function AttemptView() {
     const { examId } = useParams<{ examId: string }>();
@@ -31,17 +29,15 @@ export default function AttemptView() {
 
     const {
         submitting, isExamSubmitted, examAttempt, questionResults, scorePercentage,
-        submitExam, showSaveOption, setShowSaveOption, handleSignInToSave,
-        submissionError
-    } = useExamSubmission(authenticated, exam);
+        submitExam, showSaveOption, setShowSaveOption, handleSignInToSave } = useExamSubmission(authenticated, exam);
 
     const {
         showConfirmDialog, showLeaveDialog, openConfirmDialog, closeConfirmDialog,
-        pendingNavigation, setPendingNavigation, handleConfirmSubmit,
+        setPendingNavigation, handleConfirmSubmit,
         handleConfirmLeave, handleCancelLeave
     } = useAttemptDialogs();
 
-    const { hasUnsavedChanges } = useUnsavedChanges({
+    useUnsavedChanges({
         hasChanges: Object.values(answers).some(answer => answer && answer.length > 0),
         isSubmitted: isExamSubmitted,
         onNavigationAttempt: (url) => {
@@ -269,8 +265,8 @@ export default function AttemptView() {
                                             key={question?.id || index}
                                             onClick={() => navigateToQuestion(index)}
                                             className={`question-button ${index === currentQuestionIndex ? 'question-button-current' :
-                                                    getQuestionStatus(question?.id || '') === 'answered' ? 'question-button-answered' :
-                                                        'question-button-unanswered'
+                                                getQuestionStatus(question?.id || '') === 'answered' ? 'question-button-answered' :
+                                                    'question-button-unanswered'
                                                 }`}
                                         >
                                             {index + 1}

@@ -30,7 +30,7 @@ interface UseAnswerStateReturn {
 export const useAnswerState = (exam: Exam | null): UseAnswerStateReturn => {
   const [answers, setAnswers] = useState<AnswersState>({});
 
-  // Initialize answers when exam loads
+  // Init answers when exam loads
   useEffect(() => {
     if (exam?.questions) {
       const initialAnswers: AnswersState = {};
@@ -43,7 +43,7 @@ export const useAnswerState = (exam: Exam | null): UseAnswerStateReturn => {
     }
   }, [exam?.questions]);
 
-  // Handle single answer questions (radio buttons)
+  // Handle single answer questions
   const handleAnswerChange = useCallback((questionId: string, answer: string) => {
     setAnswers((prev) => ({
       ...prev,
@@ -51,7 +51,7 @@ export const useAnswerState = (exam: Exam | null): UseAnswerStateReturn => {
     }));
   }, []);
 
-  // Handle multiple answer questions (checkboxes)
+  // Handle multiple answer questions
   const handleMultipleAnswerChange = useCallback((questionId: string, option: string, checked: boolean) => {
     setAnswers((prev) => {
       const currentAnswers = prev[questionId] || [];

@@ -10,21 +10,17 @@ export interface Toast {
 export const useToast = () => {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const addToast = useCallback((
-    type: Toast['type'], 
-    message: string, 
-    duration: number = 4000
-  ) => {
-    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-    
+  const addToast = useCallback((type: Toast['type'], message: string, duration: number = 4000) => {
+    const id = Date.now().toString() + Math.random().toString(36).substring(2, 9);
+
     const newToast: Toast = {
       id,
       type,
       message,
-      duration
+      duration,
     };
 
-    setToasts(prev => [...prev, newToast]);
+    setToasts((prev) => [...prev, newToast]);
 
     // Auto-remove toast after duration
     if (duration > 0) {
@@ -37,7 +33,7 @@ export const useToast = () => {
   }, []);
 
   const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
   const clearAllToasts = useCallback(() => {
@@ -45,17 +41,22 @@ export const useToast = () => {
   }, []);
 
   // Convenience methods
-  const showSuccess = useCallback((message: string, duration?: number) => 
-    addToast('success', message, duration), [addToast]);
+  const showSuccess = useCallback(
+    (message: string, duration?: number) => addToast('success', message, duration),
+    [addToast]
+  );
 
-  const showError = useCallback((message: string, duration: number = 6000) => 
-    addToast('error', message, duration), [addToast]);
+  const showError = useCallback(
+    (message: string, duration: number = 6000) => addToast('error', message, duration),
+    [addToast]
+  );
 
-  const showWarning = useCallback((message: string, duration?: number) => 
-    addToast('warning', message, duration), [addToast]);
+  const showWarning = useCallback(
+    (message: string, duration?: number) => addToast('warning', message, duration),
+    [addToast]
+  );
 
-  const showInfo = useCallback((message: string, duration?: number) => 
-    addToast('info', message, duration), [addToast]);
+  const showInfo = useCallback((message: string, duration?: number) => addToast('info', message, duration), [addToast]);
 
   return {
     toasts,

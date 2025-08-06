@@ -9,19 +9,30 @@ interface UseAuthRedirectProps {
   isProtectedRoute: boolean;
 }
 
-export const useAuthRedirect = ({ 
-  authenticated, 
-  authInitialized, 
-  loading, 
-  currentPath, 
-  isProtectedRoute 
+export const useAuthRedirect = ({
+  authenticated,
+  authInitialized,
+  loading,
+  currentPath,
+  isProtectedRoute,
 }: UseAuthRedirectProps) => {
   const navigate = useNavigate();
 
   useEffect(() => {
     if (authInitialized && !loading && !authenticated && isProtectedRoute && currentPath !== '/login') {
-      sessionStorage.setItem('redirectPath', currentPath);
-      navigate('/login', { replace: true });
+      try {
+        sessionStorage.setItem('redirectPath', currentPath);
+      } catch (error) {
+        // Handle sessionStorage errors gracefully (e.g., quota exceeded, disabled)
+        console.warn('Failed to save redirect path to sessionStorage:', error);
+      }
+      
+      try {
+        navigate('/login', { replace: true });
+      } catch (error) {
+        // Handle navigation errors gracefully
+        console.warn('Failed to navigate to login:', error);
+      }
     }
   }, [authenticated, authInitialized, loading, currentPath, isProtectedRoute, navigate]);
 };

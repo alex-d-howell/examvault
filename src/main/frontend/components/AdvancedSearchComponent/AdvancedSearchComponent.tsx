@@ -71,7 +71,7 @@ export const AdvancedSearchComponent: React.FC<AdvancedSearchProps> = ({
     const handleSearch = async () => {
         setIsLoading(true);
         try {
-            await onSearch(filters);
+            onSearch(filters);
         } finally {
             setIsLoading(false);
         }

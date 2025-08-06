@@ -42,6 +42,8 @@ export const useExamDetail = (examId: string | undefined, authenticated: boolean
       try {
         setLoading(true);
         setError(null);
+        // Reset expanded questions when examId changes
+        setExpandedQuestions(new Set<string>());
 
         // Fetch the exam
         const fetchedExam = await ExamService.getExamById(examId);
@@ -76,18 +78,20 @@ export const useExamDetail = (examId: string | undefined, authenticated: boolean
     fetchExamAndPermissions();
   }, [examId, authenticated]);
 
-  // Question management
+  // Question management - fixed to use functional update pattern
   const toggleQuestion = useCallback(
     (questionId: string) => {
-      const newExpanded = new Set(expandedQuestions);
-      if (newExpanded.has(questionId)) {
-        newExpanded.delete(questionId);
-      } else {
-        newExpanded.add(questionId);
-      }
-      setExpandedQuestions(newExpanded);
+      setExpandedQuestions(prevExpanded => {
+        const newExpanded = new Set(prevExpanded);
+        if (newExpanded.has(questionId)) {
+          newExpanded.delete(questionId);
+        } else {
+          newExpanded.add(questionId);
+        }
+        return newExpanded;
+      });
     },
-    [expandedQuestions]
+    [] // No dependencies needed with functional update
   );
 
   const isCorrectAnswer = useCallback((option: string, question: Question) => {

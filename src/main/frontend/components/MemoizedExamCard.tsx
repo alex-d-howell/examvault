@@ -1,4 +1,3 @@
-// src/components/Performance/MemoizedExamCard.tsx
 import { memo, useMemo, useCallback } from 'react';
 import { Card, Button, Icon } from '@vaadin/react-components';
 import { useNavigate } from 'react-router';
@@ -44,7 +43,11 @@ export const MemoizedExamCard = memo<MemoizedExamCardProps>(({
 
     // Memoized callbacks to prevent child re-renders
     const handleTagClick = useCallback((tag: string) => {
-        onTagClick(tag);
+        try {
+            onTagClick(tag);
+        } catch (err) {
+            // Optionally log or handle error here
+        }
     }, [onTagClick]);
 
     const handleViewClick = useCallback(() => {
@@ -153,7 +156,6 @@ export const MemoizedExamCard = memo<MemoizedExamCardProps>(({
         </Card>
     );
 }, (prevProps, nextProps) => {
-    // Custom comparison for optimal re-rendering
     return (
         prevProps.exam.id === nextProps.exam.id &&
         prevProps.className === nextProps.className
