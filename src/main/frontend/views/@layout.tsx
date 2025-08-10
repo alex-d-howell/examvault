@@ -53,9 +53,9 @@ function LayoutContent() {
   // Render main layout for all users (authenticated and anonymous)
   if (shouldShowLayout) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
         <div className="main-layout-root">
-          <Font family='Montserrat'>
+          <Font family='Merriweather'>
             <HeaderComponent
               navRoutes={navRoutes}
               currentPath={currentPath}
@@ -78,7 +78,7 @@ function LayoutContent() {
   return <Outlet data-testid="outlet" />;
 }
 
-const HeaderComponent = ({ navRoutes, currentPath, authenticated, onSignOut }: {
+const HeaderComponent = ({ navRoutes, authenticated, onSignOut }: {
   navRoutes: Array<{ path: string; label: string }>;
   currentPath: string;
   authenticated: boolean;
@@ -86,29 +86,14 @@ const HeaderComponent = ({ navRoutes, currentPath, authenticated, onSignOut }: {
   onSignIn: () => void;
 }) => (
   <header className="main-header">
-    <h1 className="main-title">EXAM VAULT</h1>
+      <h1 className="main-title">EXAM VAULT</h1>
     <div className="main-header-controls">
       <nav style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
         {Array.isArray(navRoutes) && navRoutes.map(({ path, label }) => (
           <NavLink
             key={path}
             to={path}
-            style={currentPath === path ? activeNavStyle : inactiveNavStyle}
             className="main-nav-link"
-            onMouseEnter={e => {
-              if (currentPath !== path) {
-                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.18)';
-                e.currentTarget.style.color = '#ffe066';
-                e.currentTarget.style.boxShadow = '0 2px 8px 0 rgba(99,102,241,0.10)';
-              }
-            }}
-            onMouseLeave={e => {
-              if (currentPath !== path) {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = 'white';
-                e.currentTarget.style.boxShadow = '';
-              }
-            }}
           >
             {label}
           </NavLink>
@@ -116,11 +101,11 @@ const HeaderComponent = ({ navRoutes, currentPath, authenticated, onSignOut }: {
 
         {/* Authentication controls */}
         {authenticated ? (
-          <div className="flex items-center ml-4">
+          <div className="flex items-center m-sm ml-md">
             <Button
               onClick={onSignOut}
-              theme="tertiary small"
-              style={{ color: 'white', minHeight: '32px' }}
+              theme="tertiary"
+              className='signout'
             >
               Sign Out
             </Button>
@@ -128,16 +113,7 @@ const HeaderComponent = ({ navRoutes, currentPath, authenticated, onSignOut }: {
         ) : (
           <NavLink
             to="/login"
-            style={signInNavStyle}
             className="main-nav-link"
-            onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)';
-              e.currentTarget.style.color = '#ffe066';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
-              e.currentTarget.style.color = 'white';
-            }}
           >
             SIGN IN
           </NavLink>
@@ -155,31 +131,3 @@ const FooterComponent = () => (
     </a>
   </footer>
 );
-
-const activeNavStyle = {
-  textDecoration: 'none' as const,
-  color: '#0A21C0',
-  fontWeight: 'bold' as const,
-  padding: '0.25rem .5rem',
-  borderRadius: '4px',
-  backgroundColor: 'white',
-};
-
-const inactiveNavStyle = {
-  textDecoration: 'none' as const,
-  color: 'white',
-  fontWeight: 'normal' as const,
-  padding: '0.25rem .5rem',
-  borderRadius: '4px',
-  backgroundColor: 'transparent',
-};
-
-const signInNavStyle = {
-  textDecoration: 'none' as const,
-  color: 'white',
-  fontWeight: 'normal' as const,
-  padding: '0.25rem .5rem',
-  borderRadius: '4px',
-  backgroundColor: 'rgba(255,255,255,0.1)',
-  marginLeft: '1rem'
-};

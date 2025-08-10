@@ -83,7 +83,7 @@ export default function ExamDetailView() {
                             <div className="header-gradient">
                                 <div className="header-content">
                                     <div className="header-info">
-                                        <h1 className="exam-title">{exam.title}</h1>
+                                        <h1 className="exam-profile-title">{exam.title}</h1>
                                         <div className="meta-info">
                                             <div className="meta-item">
                                                 <Icon icon="vaadin:user" className="meta-icon"></Icon>
@@ -125,7 +125,6 @@ export default function ExamDetailView() {
                                         </h3>
                                         <TagDisplay
                                             tags={selectedTags}
-                                            onTagClick={handleTagClick}
                                             className="exam-tags-display"
                                         />
                                     </div>

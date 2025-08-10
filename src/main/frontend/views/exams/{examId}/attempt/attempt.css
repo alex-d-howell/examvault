@@ -20,9 +20,9 @@
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   padding: 2rem;
   max-width: 56rem;
+  margin: 1.5rem 0;
   width: 100%;
   text-align: center;
-  max-height: 90vh;
   overflow-y: auto;
 }
 
@@ -596,8 +596,6 @@
     to { transform: rotate(360deg); }
 }
 
-/* NEW STYLES FOR OPTIONAL AUTHENTICATION */
-
 /* Authentication status styles */
 .auth-status {
     display: flex;
@@ -687,7 +685,7 @@
 .score-percentage {
     font-size: 1.5rem;
     font-weight: 600;
-    color: #059669;
+    color: black !important;
     margin-top: 0.25rem;
 }
 
@@ -841,7 +839,6 @@
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    max-height: 60vh;
     overflow-y: auto;
     padding-right: 0.5rem;
 }
@@ -894,7 +891,7 @@
     margin-bottom: 1rem;
 }
 
-.question-number {
+.question-result-number {
     font-weight: 600;
     color: #6b7280;
     font-size: 0.9rem;
@@ -1083,10 +1080,6 @@
     
     .result-indicator {
         align-self: flex-end;
-    }
-    
-    .questions-results-list {
-        max-height: 50vh;
     }
     
     .question-result {

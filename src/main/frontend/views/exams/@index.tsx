@@ -10,6 +10,7 @@ import { ExamListSkeleton } from 'Frontend/components/LoadingSkeletons';
 import { ExamErrorBoundary, SearchErrorBoundary } from 'Frontend/components/ErrorBoundaries';
 import { APP_CONFIG, ROUTES } from '../../config/constants';
 import Exam from 'Frontend/generated/com/howell/examvault/base/domain/Exam';
+import './exams.css';
 
 export default function ExamsView() {
   const navigate = useNavigate();
@@ -58,8 +59,7 @@ export default function ExamsView() {
     { label: 'Relevance Score', value: 'relevance' },
     { label: 'Title (A-Z)', value: 'title' },
     { label: 'Author (A-Z)', value: 'author' },
-    { label: 'Question Count (Most First)', value: 'questions' },
-    { label: 'Comment Count (Most First)', value: 'comments' }
+    { label: 'Question Count (Most First)', value: 'questions' }
   ];
 
   return (
@@ -86,27 +86,12 @@ export default function ExamsView() {
               <div className="flex items-center gap-sm">
                 <span className="text-sm text-gray-500">Sort by:</span>
                 <Select
-                  value="date"
                   onChange={(e) => sortExams(e.target.value as ClientSortOption)}
                   theme="small"
-                >
-                  {sortOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </Select>
+                  className='sort-select'
+                  items={sortOptions}
+                />
               </div>
-            )}
-
-            {hasSearched && resultsCount > 0 && (
-              <Button
-                theme="tertiary small"
-                onClick={() => navigate(ROUTES.EXAM_CREATE)}
-              >
-                <Icon slot="prefix" icon="vaadin:plus" />
-                Create Exam
-              </Button>
             )}
           </div>
         </div>
@@ -160,8 +145,8 @@ export default function ExamsView() {
             <div className="welcome-message">
               <div className="welcome-content">
                 <Icon icon="vaadin:search" className="welcome-icon" />
-                <h3>Discover Amazing Exams</h3>
-                <p>Use our powerful search system to find exams by title, author, tags, date range, and more!</p>
+                <h3>Discover Exams!</h3>
+                <p>Use our search system to find exams by title, author, tags, date range, and more!</p>
                 <div className="welcome-features">
                   <div className="feature-item">
                     <Icon icon="vaadin:filter" />

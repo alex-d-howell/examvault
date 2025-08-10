@@ -3,6 +3,7 @@ import { Icon, Button } from '@vaadin/react-components';
 import { useExamAttemptsModal } from 'Frontend/hooks/useExamAttemptModal';
 import { ExamAttemptsListModal, ExamAttemptDetailModal } from 'Frontend/components/ExamAttemptHistoryComponents/ExamAttemptHistoryComponents';
 import { ExamErrorBoundary } from 'Frontend/components/ErrorBoundaries';
+import './ExamAttemptHistoryComponents.css';
 
 export interface ExamAttemptsStatsProps {
   examId: string;
@@ -15,6 +16,7 @@ export const ExamAttemptsStats: React.FC<ExamAttemptsStatsProps> = ({
   examTitle,
   authenticated,
 }) => {
+  
   // Safely call the hook and catch errors
   let examAttemptsModal: ReturnType<typeof useExamAttemptsModal> | null = null;
 

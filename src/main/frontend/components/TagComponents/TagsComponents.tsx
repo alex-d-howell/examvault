@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTagInput, useTags } from '../../hooks/useTags';
+import './TagComponents.css';
 
-// ========== TagChip ==========
 interface TagChipProps {
   tag: string;
   onRemove?: (tag: string) => void;
@@ -58,7 +58,6 @@ export const TagChip: React.FC<TagChipProps> = ({
   );
 };
 
-// ========== TagDisplay ==========
 interface TagDisplayProps {
   tags: string[];
   onTagClick?: (tag: string) => void;

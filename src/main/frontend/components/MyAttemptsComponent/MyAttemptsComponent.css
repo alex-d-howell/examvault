@@ -243,6 +243,7 @@
 .score-percentage {
     font-size: 1rem;
     line-height: 1;
+    color: white;
 }
 
 .score-details {

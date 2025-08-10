@@ -151,7 +151,9 @@
 /* Tag Filter Styling */
 .tag-filter {
     background: rgba(255, 255, 255, 0.7);
-    padding: 1rem;
+    padding: 1.5rem;
+    padding-right: 3rem;
+    margin: 1rem;
     border-radius: 0.75rem;
     border: 1px solid rgba(226, 232, 240, 0.6);
 }

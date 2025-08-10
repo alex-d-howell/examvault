@@ -132,7 +132,7 @@ export default function AttemptView() {
                                                 {questionResults.map((result, index) => (
                                                     <div key={result.questionId} className={`question-result ${result.isCorrect ? 'correct' : 'incorrect'}`}>
                                                         <div className="question-result-header">
-                                                            <div className="question-number">Question {index + 1}</div>
+                                                            <div className="question-result-number">Question {index + 1}</div>
                                                             <div className={`result-indicator ${result.isCorrect ? 'correct' : 'incorrect'}`}>
                                                                 <Icon
                                                                     icon={result.isCorrect ? "vaadin:check-circle" : "vaadin:close-circle"}

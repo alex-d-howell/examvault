@@ -2,9 +2,8 @@
 
 ### To Do List
 
-- Add modal for user's ExamAttempts in dashboard and in profile
-- Restyle application
-- Write Frontend tests
+- fix tag click on profile & home
+- fix client-side sort sort by
 - Develop & document deployment procedures
 
 To start the application in development mode, import it into your IDE and run the `ExamVault` class. 

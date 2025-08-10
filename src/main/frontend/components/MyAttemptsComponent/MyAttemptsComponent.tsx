@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Button, Icon } from '@vaadin/react-components';
 import { useNavigate } from 'react-router';
 import type ExamAttempt from 'Frontend/generated/com/howell/examvault/base/domain/ExamAttempt';
+import './MyAttemptsComponent.css';
+import { ROUTES } from 'Frontend/config/constants';
+import { ConfirmationButton } from '../ConfirmationButton';
 
 interface MyAttemptsProps {
     attempts: ExamAttempt[];
@@ -135,18 +138,9 @@ export const MyAttempts: React.FC<MyAttemptsProps> = ({
 
     const stats = getAttemptStats();
 
-    const handleExamClick = (examId?: string) => {
-        if (examId) {
-            navigate(`/exams/${examId}`);
-        }
-    };
-
-    const handleRetakeClick = (event: React.MouseEvent, examId?: string) => {
-        event.stopPropagation();
-        if (examId) {
-            navigate(`/exams/${examId}/attempt`);
-        }
-    };
+    const handleAttemptClick = useCallback((examId: string) => {
+            navigate(ROUTES.EXAM_ATTEMPT(examId));
+        }, [navigate]);
 
     const handleTagClick = (event: React.MouseEvent, tag: string) => {
         event.stopPropagation();
@@ -242,7 +236,6 @@ export const MyAttempts: React.FC<MyAttemptsProps> = ({
                         <div
                             key={attempt.id || `attempt-${index}`}
                             className="my-attempt-card"
-                            onClick={() => handleExamClick(attempt.exam?.id)}
                         >
                             <div className="attempt-card-header">
                                 <div className="attempt-info">
@@ -302,14 +295,15 @@ export const MyAttempts: React.FC<MyAttemptsProps> = ({
                                     <Icon icon="vaadin:eye" slot="prefix" />
                                     Review
                                 </Button>
-                                <Button
-                                    theme="secondary small"
-                                    className="action-btn retake-btn"
-                                    onClick={(e) => handleRetakeClick(e, attempt.exam?.id)}
-                                >
-                                    <Icon icon="vaadin:refresh" slot="prefix" />
-                                    Retake
-                                </Button>
+                                <ConfirmationButton
+                                    action="Begin Exam"
+                                    modalTitle="Attempt Exam"
+                                    modalDescription={`Are you sure you want to attempt "${attempt.exam?.title}"?`}
+                                    buttonText="Take Exam"
+                                    buttonClassName="action-btn attempt-btn"
+                                    buttonTheme="primary"
+                                    onYes={ () => handleAttemptClick(attempt.exam?.id || '')}
+                                />
                             </div>
                         </div>
                     );

@@ -41,6 +41,13 @@
 .m-xl { margin: var(--space-xl); }
 .m-2xl { margin: var(--space-2xl); }
 
+.ml-xs { margin-left: var(--space-xs); }
+.ml-sm { margin-left: var(--space-sm); }
+.ml-md { margin-left: var(--space-md); }
+.ml-lg { margin-left: var(--space-lg); }
+.ml-xl { margin-left: var(--space-xl); }
+.ml-2xl { margin-left: var(--space-2xl); }
+
 .mb-xs { margin-bottom: var(--space-xs); }
 .mb-sm { margin-bottom: var(--space-sm); }
 .mb-md { margin-bottom: var(--space-md); }
@@ -133,16 +140,54 @@
 /* Exam-specific utilities */
 .exam-card {
   background: white;
-  border-radius: var(--radius-xl);
-  padding: var(--space-2xl);
+  padding: 1rem;
+  border-radius: 5px;
   box-shadow: var(--shadow-md);
-  border: 1px solid var(--color-gray-200);
   transition: all var(--transition-normal);
 }
 
 .exam-card:hover {
-  transform: translateY(-8px);
+  transform: translateY(-4px);
   box-shadow: var(--shadow-xl);
+}
+
+.exam-card-title {
+  font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+    line-height: 1.3;
+    word-break: break-word;
+    margin-bottom: .75rem;
+}
+
+/* Exam Meta */
+.exam-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: rgba(249, 250, 251, 0.8);
+    border-radius: 0.5rem;
+    border: 1px solid #f3f4f6;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.meta-item vaadin-icon {
+    color: #9ca3af;
+    font-size: 1rem;
+}
+
+
+.action-btn {
+  margin-right: .75rem;
 }
 
 .exam-grid {

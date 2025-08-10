@@ -4,6 +4,7 @@ import { Button, Icon } from '@vaadin/react-components';
 import { ExamAttemptService } from 'Frontend/generated/endpoints';
 import { useAuth } from 'Frontend/hooks/useAuth';
 import type Exam from 'Frontend/generated/com/howell/examvault/base/domain/Exam';
+import './DashboardExamCard.css';
 
 // Simple stats DTO for dashboard cards
 interface AttemptSummaryStats {
@@ -27,12 +28,9 @@ export const DashboardExamCard: React.FC<DashboardExamCardProps> = ({
     onViewAttempts,
     className,
 }) => {
-    const { user } = useAuth();
     const [attemptStats, setAttemptStats] = useState<AttemptSummaryStats | null>(null);
     const [loadingStats, setLoadingStats] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
-    const isOwnExam = user && exam.uploadedBy === user.email;
 
     // Load basic attempt stats for the exam card
     useEffect(() => {
@@ -105,34 +103,6 @@ export const DashboardExamCard: React.FC<DashboardExamCardProps> = ({
         }
     };
 
-    const formatLastAttemptDate = (dateString?: string) => {
-        if (!dateString) return 'Never';
-
-        try {
-            const date = new Date(dateString);
-            const now = new Date();
-            const diffTime = Math.abs(now.getTime() - date.getTime());
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-            if (diffDays === 1) return 'Today';
-            if (diffDays === 2) return 'Yesterday';
-            if (diffDays <= 7) return `${diffDays - 1}d ago`;
-            if (diffDays <= 30) return `${Math.ceil(diffDays / 7)}w ago`;
-
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        } catch {
-            return 'Invalid date';
-        }
-    };
-
-    const getTrendIcon = (trend?: string) => {
-        switch (trend) {
-            case 'improving': return { icon: 'vaadin:trending-up', color: '#10b981' };
-            case 'declining': return { icon: 'vaadin:trending-down', color: '#ef4444' };
-            default: return { icon: 'vaadin:minus', color: '#64748b' };
-        }
-    };
-
     const getScoreColor = (percentage: number): string => {
         if (percentage >= 90) return '#10b981'; // green
         if (percentage >= 80) return '#3b82f6'; // blue  
@@ -141,12 +111,12 @@ export const DashboardExamCard: React.FC<DashboardExamCardProps> = ({
     };
 
     return (
-        <div className={`enhanced-exam-card ${isOwnExam ? 'owned-exam' : ''} ${className || ''}`}>
+        <div className="enhanced-exam-card">
             {/* Render the original exam card */}
             <MemoizedExamCard
                 exam={exam}
                 onTagClick={onTagClick}
-                className="base-exam-card"
+                className='dashboard-card'
             />
 
             {/* Attempt statistics section */}
@@ -165,23 +135,8 @@ export const DashboardExamCard: React.FC<DashboardExamCardProps> = ({
             )}
 
             {!loadingStats && !error && attemptStats && attemptStats.totalAttempts > 0 && (
-                <div className="exam-attempts-stats-summary enhanced">
-                    <div className="stats-header">
-                        <div className="stats-title">
-                            <Icon icon="vaadin:chart" />
-                            <span>Your Performance</span>
-                        </div>
-                        {attemptStats.recentTrend && attemptStats.totalAttempts >= 6 && (
-                            <div className="trend-indicator">
-                                <Icon
-                                    icon={getTrendIcon(attemptStats.recentTrend).icon}
-                                    style={{ color: getTrendIcon(attemptStats.recentTrend).color }}
-                                />
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="exam-attempts-stats-summary-grid enhanced">
+                <div className="exam-attempts-stats-summary">
+                    <div className="exam-attempts-stats-summary-grid">
                         <div className="exam-attempts-stat-mini">
                             <div className="stat-mini-icon">
                                 <Icon icon="vaadin:list" />
@@ -203,7 +158,7 @@ export const DashboardExamCard: React.FC<DashboardExamCardProps> = ({
                                 >
                                     {attemptStats.bestPercentage}%
                                 </div>
-                                <div className="exam-attempts-stat-mini-label">Best Score</div>
+                                <div className="exam-attempts-stat-mini-label">Best</div>
                             </div>
                         </div>
 
@@ -219,18 +174,6 @@ export const DashboardExamCard: React.FC<DashboardExamCardProps> = ({
                                     {attemptStats.averagePercentage}%
                                 </div>
                                 <div className="exam-attempts-stat-mini-label">Average</div>
-                            </div>
-                        </div>
-
-                        <div className="exam-attempts-stat-mini last-attempt">
-                            <div className="stat-mini-icon">
-                                <Icon icon="vaadin:clock" />
-                            </div>
-                            <div className="stat-mini-content">
-                                <div className="exam-attempts-stat-mini-value">
-                                    {formatLastAttemptDate(attemptStats.lastAttemptDate)}
-                                </div>
-                                <div className="exam-attempts-stat-mini-label">Last Attempt</div>
                             </div>
                         </div>
                     </div>

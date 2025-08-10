@@ -39,7 +39,7 @@ export const ReadMoreModal = ({ description }: { description: string }) => {
                 onOpenedChanged={(e) => setDialogOpened(e.detail.value)}
                 headerTitle="Exam Description"
                 width='75vw'
-                height='60vh'
+                height='auto'
             >
                 <span style={{ fontSize: 'var(--lumo-font-size-s)', margin: 0, overflowWrap: 'break-word' }}>{description}</span>
             </Dialog>

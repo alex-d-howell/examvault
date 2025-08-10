@@ -86,35 +86,17 @@ export default function HomeView() {
                                         <Icon icon="vaadin:user-card" />
                                         Your Exams ({myExams.length})
                                     </h3>
-                                    <Button
-                                        theme="tertiary small"
-                                        onClick={() => navigate('/exams/create')}
-                                    >
-                                        <Icon icon="vaadin:plus" slot="prefix" />
-                                        Create New
-                                    </Button>
                                 </div>
                                 <div className="exam-grid">
-                                    {myExams.slice(0, 4).map((exam) => (
+                                    {myExams.map((exam) => (
                                         <DashboardExamCard
                                             key={exam.id}
                                             exam={exam}
                                             onTagClick={(tag: string) => navigate(`/exams?tag=${encodeURIComponent(tag)}`)}
                                             onViewAttempts={handleViewAttempts}
-                                            className="my-exam-card"
                                         />
                                     ))}
                                 </div>
-                                {myExams.length > 4 && (
-                                    <div className="section-footer">
-                                        <Button
-                                            theme="tertiary"
-                                            onClick={() => navigate('/exams?filter=mine')}
-                                        >
-                                            View All {myExams.length} Exams
-                                        </Button>
-                                    </div>
-                                )}
                             </div>
                         )}
 
@@ -125,14 +107,6 @@ export default function HomeView() {
                                     <Icon icon="vaadin:clock" />
                                     My Attempts
                                 </h3>
-                                {myAttempts.length > 5 && (
-                                    <Button
-                                        theme="tertiary small"
-                                        onClick={() => navigate('/attempts')} // You'd need this route
-                                    >
-                                        View All
-                                    </Button>
-                                )}
                             </div>
                             {loadingData ? (
                                 <div className="loading-skeleton">
@@ -189,7 +163,6 @@ const EnhancedWelcomeCard = ({ user, stats, onCreateExam, onBrowseExams }: {
 }) => (
     <div className="welcome-card-enhanced">
         <div className="welcome-background">
-            <div className="welcome-content">
                 <div className="user-section">
                     <img
                         src={user?.profilePictureUrl}
@@ -199,24 +172,13 @@ const EnhancedWelcomeCard = ({ user, stats, onCreateExam, onBrowseExams }: {
                     />
                     <div className="user-info">
                         <h1 className="welcome-title">
-                            Welcome back, {user?.name?.split(' ')[0]}! 🎯
+                            Welcome back, {user?.name?.split(' ')[0]}!
                         </h1>
                         <p className="welcome-subtitle">
                             Track your progress and keep improving!
                         </p>
                     </div>
                 </div>
-                <div className="quick-stats">
-                    <div className="stat-item">
-                        <span className="stat-number">{stats.totalExamsCreated}</span>
-                        <span className="stat-label">Exams Created</span>
-                    </div>
-                    <div className="stat-item">
-                        <span className="stat-number">{stats.uniqueExamsTaken}</span>
-                        <span className="stat-label">Exams Attempted</span>
-                    </div>
-                </div>
-            </div>
             <div className="welcome-actions">
                 <Button onClick={onCreateExam} theme="primary" className="create-btn">
                     <Icon icon="vaadin:plus" slot="prefix" />
@@ -252,8 +214,7 @@ const DashboardStatsOverview = ({ stats }: { stats: any }) => (
                 </div>
                 <div className="stat-content">
                     <span className="stat-value">{stats.uniqueExamsTaken}</span>
-                    <span className="stat-title">Exams Attempted</span>
-                    <span className="stat-trend neutral">Different topics</span>
+                    <span className="stat-title">Unique Exams Attempted</span>
                 </div>
             </div>
 
@@ -263,8 +224,7 @@ const DashboardStatsOverview = ({ stats }: { stats: any }) => (
                 </div>
                 <div className="stat-content">
                     <span className="stat-value">{stats.totalExamsCreated}</span>
-                    <span className="stat-title">Exams Created</span>
-                    <span className="stat-trend neutral">Your contributions</span>
+                    <span className="stat-title">Total Exams Created</span>
                 </div>
             </div>
 

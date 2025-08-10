@@ -5,6 +5,7 @@
 .main-layout-root {
   display: flex;
   flex-direction: column;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
 }
 
 /* Header styles */
@@ -12,15 +13,16 @@
   display: grid;
   grid-template-rows: 1fr 1fr;
   gap: 1.5rem;
-  padding: 1.5rem;
-  height: 10vh;
-  background-color: #191970;
-  align-items: center;
-  justify-content: center;
+  min-height: 10vh;
+  margin-bottom: 2vh;
+  border-bottom: 1px solid rgba(12, 12, 54, 0.205);
+  padding-top: 3rem;
+  padding-left: 3rem;
+  background-color: white;
 }
 .main-title {
-  margin: auto;
-  color: white !important;
+  color: rgb(0, 12, 180) !important;
+  font-size: 5rem;
 }
 .main-header-controls {
   display: flex;
@@ -28,27 +30,41 @@
   gap: 1rem;
 }
 
-.main-sample-btn {
-  position: relative;
-  top: 4px;
-  left: 2rem;
+.main-nav-link {
+  background-color: transparent;
+  text-decoration: none;
+  color: rgb(54, 54, 54);
+  box-shadow: none;
+  border-radius: 5px;
+  font-weight: 600;
+  padding: .25rem .5rem;
+}
+
+.signout {
+  padding: var(--space-md);
   cursor: pointer;
-  color: white;
-  background-color: #0a21c0;
-  border-radius: 4px;
+}
+
+.main-nav-link:hover {
+  color: #00179c;
+  box-shadow: 0 2px 8px 0 rgba(57, 59, 161, 0.295);
+  text-decoration: none;
+  scale: 1.1;
+}
+
+.main-content {
+  min-height: 80vh;
+  margin-bottom: 5rem;
 }
 
 /* Footer styles */
 .main-footer {
   text-align: center;
   background-color: #f1f1f1;
-  height: 10vh;
+  min-height: 10vh;
   padding: 1rem;
 }
 
-/* ✨ Add this at the END of your existing layout.css */
-
-/* Professional Loading Animations */
 @keyframes skeleton-shimmer {
   0% {
     background-position: -200% 0;
@@ -62,23 +78,6 @@
   background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%) !important;
   background-size: 200% 100% !important;
   animation: skeleton-shimmer 1.5s ease-in-out infinite !important;
-}
-
-/* Utility classes for skeletons */
-.mb-xs {
-  margin-bottom: 0.25rem;
-}
-.mb-sm {
-  margin-bottom: 0.5rem;
-}
-.mb-lg {
-  margin-bottom: 1rem;
-}
-.mb-xl {
-  margin-bottom: 1.25rem;
-}
-.mr-sm {
-  margin-right: 0.5rem;
 }
 
 /* Virtual scrolling container */
