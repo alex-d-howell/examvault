@@ -72,8 +72,8 @@ const sortExamsClientSide = (
 
     case 'questions':
       return sorted.sort((a, b) => {
-        const countA = a.questions?.length || 0;
-        const countB = b.questions?.length || 0;
+        const countA = a.questions!.length || 0;
+        const countB = b.questions!.length || 0;
         return countB - countA; // Descending
       });
 
@@ -83,8 +83,8 @@ const sortExamsClientSide = (
         let scoreB = 0;
 
         // Question count factor
-        scoreA += (a.questions?.length || 0) * 0.1;
-        scoreB += (b.questions?.length || 0) * 0.1;
+        scoreA += (a.questions!.length || 0) * 0.1;
+        scoreB += (b.questions!.length || 0) * 0.1;
 
         // Recency factor
         if (a.uploadedAt && b.uploadedAt) {

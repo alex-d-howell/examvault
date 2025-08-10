@@ -25,16 +25,14 @@ export const MemoizedExamCard = memo<MemoizedExamCardProps>(({
     // Memoize expensive computations
     const examMeta = useMemo(() => {
         const canEdit = authenticated && user && exam.uploadedBy === user.email;
-        const isOwnExam = authenticated && user && exam.uploadedBy === user.email;
         const questionCount = exam.questions?.length || 0;
         const filteredTags = (exam.tags || []).filter((tag): tag is string =>
             tag != null && tag !== undefined
         );
-        const cardClassName = `exam-card ${isOwnExam ? 'own-exam-card' : ''} ${className}`;
+        const cardClassName = `${className != '' ? className : 'exam-card'}`;
 
         return {
             canEdit,
-            isOwnExam,
             questionCount,
             filteredTags,
             cardClassName
@@ -67,13 +65,7 @@ export const MemoizedExamCard = memo<MemoizedExamCardProps>(({
             {/* Exam Header */}
             <div className="exam-card-header">
                 <div className="exam-title-section">
-                    <h3 className="exam-title">{exam.title}</h3>
-                    {examMeta.isOwnExam && (
-                        <span className="own-exam-badge">
-                            <Icon icon="vaadin:user" />
-                            Your Exam
-                        </span>
-                    )}
+                    <h3 className="exam-card-title">{exam.title}</h3>
                 </div>
             </div>
 

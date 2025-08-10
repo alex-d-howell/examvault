@@ -163,7 +163,7 @@ export const AdvancedSearchComponent: React.FC<AdvancedSearchProps> = ({
                     </div>
 
                     {/* Tag Search */}
-                    <div className="filter-row full-width">
+                    <div className="filter-row">
                         <TagSearch
                             selectedTags={filters.tags}
                             onTagsChange={(tags: (string | undefined)[]) => {

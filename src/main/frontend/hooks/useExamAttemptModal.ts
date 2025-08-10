@@ -72,7 +72,6 @@ export const useExamAttemptsModal = (): UseExamAttemptsModalReturn => {
     setCurrentView('closed');
     setCurrentExamId(null);
     setCurrentExamTitle(null);
-    examAttemptHistoryHook.clearAttempts();
   }, [examAttemptHistoryHook]);
 
   return {
